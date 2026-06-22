@@ -73,8 +73,8 @@ function sendWorldData(ws) {
   });
 }
 
-function sendPlayerData(ws) {
-  sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, Object.assign({}, world.players[ws.username], {
+function sendPlayerData(ws, username) {
+  sendPacket(ws, PacketType.PLAYER_METADATA, username, Object.assign({}, world.players[username], {
     "hitboxes": [{
       "x": 0.125,
       "y": 0.9125,
@@ -285,7 +285,10 @@ server.get("/api/shyfog/ping", (req, res) => {
           "selectedHotbarSlot": 0
         };
       }
-      sendPlayerData(ws);
+      getPlayers().forEach(client => {
+        sendPlayerData(ws, client.username);
+        sendPlayerData(client, ws.username);
+      });
       log("INFO", `${ws.username}[/${req.ip}] logged in at (${world.players[ws.username].x}, ${world.players[ws.username].y}, ${world.players[ws.username].z})`);
       var playerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var playerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
@@ -350,6 +353,12 @@ server.get("/api/shyfog/ping", (req, res) => {
         }
         sendChunks(ws, chunksToSend);
       }
+      getPlayers().forEach(client => {
+        if (client === ws) {
+          return;
+        }
+        sendPlayerData(client, ws.username);
+      });
     }
     if (op == PacketType.BLOCK_BREAK) {
       var [ x, y, z ] = data;
