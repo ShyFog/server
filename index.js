@@ -381,7 +381,11 @@ server.get("/api/shyfog/ping", (req, res) => {
       }
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
       getPlayers().forEach(client => {
-        sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
+        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
+        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
+          sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
+        }
       });
     }
     if (op == PacketType.USE) {
@@ -409,7 +413,11 @@ server.get("/api/shyfog/ping", (req, res) => {
       };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
       getPlayers().forEach(client => {
-        sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
+        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
+        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
+          sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
+        }
       });
     }
   });
