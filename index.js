@@ -87,6 +87,11 @@ function sendPlayerData(ws) {
   }));
 }
 
+// Return clients that are joined
+function getPlayers() {
+  return clients.filter(client => client.username);
+}
+
 function bigFloor(x) {
   return x.lt(0) ? x.round(0, Big.roundDown).minus(x.eq(x.round(0, Big.roundDown)) ? 0 : 1) : x.round(0, Big.roundDown);
 }
@@ -366,7 +371,9 @@ server.get("/api/shyfog/ping", (req, res) => {
         return;
       }
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
-      sendPacket(ws, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
+      getPlayers().forEach(client => {
+        sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
+      });
     }
     if (op == PacketType.USE) {
       var [ x, y, z ] = data;
@@ -392,7 +399,9 @@ server.get("/api/shyfog/ping", (req, res) => {
         x, y
       };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
-      sendPacket(ws, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
+      getPlayers().forEach(client => {
+        sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
+      });
     }
   });
   ws.on("close", code => {
