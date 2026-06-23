@@ -9,7 +9,8 @@ const PacketType = {
   "BLOCK_BREAK": 6,
   "USE": 7,
   "BLOCK_PLACE": 8,
-  "PLAYER_DISCONNECTED": 9
+  "PLAYER_DISCONNECTED": 9,
+  "HOTBAR_SWITCH": 10
 };
 
 function log(type, text) {
@@ -419,6 +420,15 @@ server.get("/api/shyfog/ping", (req, res) => {
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
           sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
+      });
+    }
+    if (op == PacketType.HOTBAR_SWITCH) {
+      world.players[ws.username].selectedHotbarSlot = data[0];
+      getPlayers().forEach(client => {
+        if (client === ws) {
+          return;
+        }
+        sendPlayerData(client, ws.username);
       });
     }
   });
