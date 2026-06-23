@@ -84,7 +84,7 @@ function sendPlayerData(ws, username) {
       "rotation": 0
     }],
     "jumpHeight": config.jumpHeight,
-    "skin": ws.skin
+    "skin": clients.find(client => client.username == username).skin
   }));
 }
 
