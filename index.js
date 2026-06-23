@@ -8,7 +8,8 @@ const PacketType = {
   "MOVEMENT": 5,
   "BLOCK_BREAK": 6,
   "USE": 7,
-  "BLOCK_PLACE": 8
+  "BLOCK_PLACE": 8,
+  "PLAYER_DISCONNECTED": 9
 };
 
 function log(type, text) {
@@ -422,10 +423,13 @@ server.get("/api/shyfog/ping", (req, res) => {
     }
   });
   ws.on("close", code => {
+    clients = clients.filter(client => client !== ws);
     if (ws.username) {
       log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : ""}`);
+      getPlayers().forEach(client => {
+        sendPacket(client, PacketType.PLAYER_DISCONNECTED, ws.username);
+      });
     }
-    clients = clients.filter(client => client !== ws);
   });
 });
 
