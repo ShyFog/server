@@ -421,10 +421,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
           sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
       });
-      if (--world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].count < 1) {
-        world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`] = null;
+      if (world.players[ws.username].gamemode != "creative") {
+        if (--world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].count < 1) {
+          world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`] = null;
+        }
+        sendPlayerData(ws, ws.username);
       }
-      sendPlayerData(ws, ws.username);
     }
     if (op == PacketType.HOTBAR_SWITCH) {
       world.players[ws.username].selectedHotbarSlot = data[0];
