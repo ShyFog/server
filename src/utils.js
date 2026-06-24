@@ -151,6 +151,22 @@ function giveItem(player, item, amount) {
   return false;
 }
 
+function getBlock(world, x, y, z) {
+  var chunkX = Math.floor(x / 16);
+  var chunkY = Math.floor(y / 16);
+  var chunkZ = z;
+  x = Math.floor(x) % 16;
+  y = Math.floor(y) % 16;
+  if (x < 0) {
+    x += 16;
+  }
+  if (y < 0) {
+    y += 16;
+  }
+  var chunk = world.chunks[`${chunkX},${chunkY},${chunkZ}`];
+  return chunk.find(block => block && block.x == x && block.y == y);
+}
+
 if (typeof module !== "undefined") {
-  module.exports = { pako, Big, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, items };
+  module.exports = { pako, Big, items, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, getBlock };
 }

@@ -66,7 +66,7 @@ function broadcastPacket(send) {
 }
 
 var serverStartTime = performance.now();
-var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items } = require("./utils.js");
+var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items, getBlock } = require("./utils.js");
 log("INFO", "Loading libraries...");
 
 var express = require("express");
@@ -125,7 +125,7 @@ if (fs.existsSync(config.world)) {
     process.exit(1);
   }
 } else {
-  log("INFO", "Generating world");
+  log("INFO", `Preparing level "${config.world}"`);
   var seed = config.seed;
   if (seed === "") {
     seed = Math.floor(Math.random() *Number.MAX_SAFE_INTEGER).toString();
@@ -145,6 +145,25 @@ if (fs.existsSync(config.world)) {
       }
     }
   }
+  log("INFO", "Selecting global world spawn...");
+  const transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass_top", "shyfog:tall_grass_bottom", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
+  var safeChunks = [];
+  for (var chunk in world.chunks) {
+    var [ chunkX, chunkY, chunkZ ] = chunk.split(",").map(part => parseInt(part));
+    var spawnBlocks = world.chunks[chunk].filter(block => block && !transparentBlocks.includes(block.block) && (!getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
+    if (spawnBlocks.length) {
+      safeChunks.push(chunk);
+    }
+  }
+  var spawnChunk = safeChunks[Math.floor(Math.random() *safeChunks.length)];
+  var [ chunkX, chunkY, chunkZ ] = spawnChunk.split(",").map(part => parseInt(part));
+  var spawnBlocks = world.chunks[spawnChunk].filter(block => block && !transparentBlocks.includes(block.block) && (!getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
+  var spawnBlock = spawnBlocks[Math.floor(Math.random() *spawnBlocks.length)];
+  world.spawn = {
+    "x": (chunkX * 16) + spawnBlock.x,
+    "y": (chunkY * 16) + spawnBlock.y + 1,
+    "z": chunkZ
+  };
   log("INFO", `Time elapsed: ${Math.round(performance.now() - generationStartTime)} ms`);
   saveWorld();
 }
@@ -238,21 +257,11 @@ app.ws("/api/shyfog/game", (ws, req) => {
       sendPacket(ws, PacketType.JOIN);
       sendWorldData(ws);
       if (!world.players[ws.username]) {
-        var transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass_top", "shyfog:tall_grass_bottom", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
-        var spawnBlocks = world.chunks["0,4,0"].filter(block => block && !transparentBlocks.includes(block.block) && !world.chunks["0,4,0"].find(block2 => block2 && block2.x == block.x && block2.y == block.x + 1 && !transparentBlocks.includes(block2.block)));
-        var spawnBlock = spawnBlocks[Math.floor(Math.random() *spawnBlocks.length)];
-        if (!spawnBlock) {
-          log("WARN", "Unable to find a valid spawn point, falling back to (0, 0, 0)");
-          spawnBlock = {
-            "x": 0,
-            "y": -1
-          };
-        }
         world.players[ws.username] = {
           "dimension": "shyfog:overworld",
-          "x": spawnBlock.x,
-          "y": (4 * 16) + spawnBlock.y + 1,
-          "z": 0,
+          "x": world.spawn.x,
+          "y": world.spawn.y,
+          "z": world.spawn.z,
           "direction": "none",
           "gamemode": config.defaultGamemode,
           "selectedHotbarSlot": 0,
