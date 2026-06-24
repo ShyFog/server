@@ -124,6 +124,9 @@ if (fs.existsSync(config.world)) {
     log("FATAL", "World file is corrupted");
     process.exit(1);
   }
+  for (var chunk in world.chunks) {
+    world.chunks[chunk] = world.chunks[chunk].filter(block => block);
+  }
 } else {
   log("INFO", `Preparing level "${config.world}"`);
   var seed = config.seed;
