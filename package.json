@@ -13,8 +13,9 @@
   "dependencies": {
     "alea": "^1.0.1",
     "big.js": "^7.0.1",
-    "catto.js": "^1.5.2",
     "chalk": "^4.1.2",
+    "express": "^4.22.2",
+    "express-ws": "^5.0.2",
     "pako": "^2.1.0",
     "simplex-noise": "^4.0.3"
   }

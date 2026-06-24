@@ -65,7 +65,8 @@ var serverStartTime = performance.now();
 var { pako, Big, log, sendPacket, bigFloor, bigToNumber } = require("./utils.js");
 log("INFO", "Loading libraries...");
 
-var cattojs = require("catto.js");
+var express = require("express");
+var expressWs = require("express-ws");
 var fs = require("fs");
 var overworldGenerator = require("./generators/overworld.js");
 
@@ -100,9 +101,8 @@ if (!fs.existsSync("config.json")) {
 log("INFO", "Loading config");
 var config = JSON.parse(fs.readFileSync("config.json").toString("utf-8"));
 
-var server = new cattojs.Server({
-  "port": config.port
-});
+var app = express();
+expressWs(app);
 var clients = [];
 var world = null;
 if (fs.existsSync(config.world)) {
@@ -144,25 +144,28 @@ if (fs.existsSync(config.world)) {
   saveWorld();
 }
 
-server.use((req, res, next) => {
+// Handle CORS
+app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   next();
 });
-
-// Workaround
-server.app.options("*", (req, res) => {
+app.options("*", (req, res) => {
   res.status(204);
   res.end();
 });
 
-server.get("/api/shyfog/ping", (req, res) => {
+// Pings
+app.get("/api/shyfog/ping", (req, res) => {
   res.json({
     "success": true,
     "onlinePlayers": clients.filter(client => client.username).length,
     "maxPlayers": config.maxPlayers,
     "motd": config.motd
   });
-}).ws("/api/shyfog/game", (ws, req) => {
+});
+
+// WebSocket
+app.ws("/api/shyfog/game", (ws, req) => {
   clients.push(ws);
   ws.on("message", async message => {
     if (message == "PING") {
@@ -401,7 +404,7 @@ server.get("/api/shyfog/ping", (req, res) => {
 });
 
 log("INFO", `Starting ShyFog server on *:${config.port}`);
-server.run().on("running", () => {
+app.listen(config.port, () => {
   setInterval(saveWorld, config.autosaveTime *1e3);
   log("INFO", `Scheduled autosave every ${config.autosaveTime}s`);
   var startTime = (performance.now() - serverStartTime);
