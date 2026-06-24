@@ -72,6 +72,11 @@ var overworldGenerator = require("./generators/overworld.js");
 
 log("INFO", `Starting ShyFog server version ${version}...`);
 
+if (!fs.existsSync("data")) {
+  log("FATAL", "Unable to find data submodule");
+  process.exit(1);
+}
+
 if (!fs.existsSync("config.json")) {
   log("WARN", "Config does not exist, creating");
   fs.writeFileSync("config.json", JSON.stringify({
