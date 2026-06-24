@@ -78,6 +78,7 @@ if (!fs.existsSync("config.json")) {
     "port": 6280,
     "motd": "A ShyFog server",
     "maxPlayers": 20,
+    "icon": "",
     "defaultGamemode": "survival",
     "seed": "",
     "world": "world.sfw",
@@ -160,7 +161,8 @@ app.get("/api/shyfog/ping", (req, res) => {
     "success": true,
     "onlinePlayers": clients.filter(client => client.username).length,
     "maxPlayers": config.maxPlayers,
-    "motd": config.motd
+    "motd": config.motd,
+    "icon": config.icon ? `data:image/png;base64,${fs.readFileSync(config.icon).toString("base64")}` : null
   });
 });
 
