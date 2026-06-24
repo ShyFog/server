@@ -13,39 +13,6 @@ const PacketType = {
   "HOTBAR_SWITCH": 10
 };
 
-function log(type, text) {
-  var date = new Date;
-  var colors = {
-    "INFO": "white",
-    "WARN": "yellow",
-    "ERROR": "red",
-    "FATAL": "red"
-  };
-  var hours = date.getHours().toString();
-  var minutes = date.getMinutes().toString();
-  var seconds = date.getSeconds().toString();
-  if (hours.length < 2) {
-    hours = `0${hours}`;
-  }
-  if (minutes.length < 2) {
-    minutes = `0${minutes}`;
-  }
-  if (seconds.length < 2) {
-    seconds = `0${seconds}`;
-  }
-  console.log(chalk[colors[type]](`[${hours}:${minutes}:${seconds} ${type}]: ${text}`));
-}
-
-function sendPacket(ws, ...packet) {
-  var uncompressedPacket = JSON.stringify(packet).slice(1, -1);
-  var compressedPacket = pako.deflate(uncompressedPacket);
-  if (compressedPacket.length < uncompressedPacket.length) {
-    ws.send(compressedPacket);
-  } else {
-    ws.send(uncompressedPacket);
-  }
-}
-
 function saveWorld() {
   log("INFO", "Saving world");
   if (config.compressWorld) {
@@ -94,21 +61,11 @@ function getPlayers() {
   return clients.filter(client => client.username);
 }
 
-function bigFloor(x) {
-  return x.lt(0) ? x.round(0, Big.roundDown).minus(x.eq(x.round(0, Big.roundDown)) ? 0 : 1) : x.round(0, Big.roundDown);
-}
-
-function bigToNumber(x) {
-  return parseFloat(x.toString());
-}
-
 var serverStartTime = performance.now();
-var chalk = require("chalk");
+var { pako, Big, log, sendPacket, bigFloor, bigToNumber } = require("./utils.js");
 log("INFO", "Loading libraries...");
 
 var cattojs = require("catto.js");
-var pako = require("pako");
-var Big = require("big.js");
 var fs = require("fs");
 var overworldGenerator = require("./generators/overworld.js");
 
@@ -141,7 +98,7 @@ if (!fs.existsSync("config.json")) {
 }
 
 log("INFO", "Loading config");
-var config = require("./config.json");
+var config = JSON.parse(fs.readFileSync("config.json").toString("utf-8"));
 
 var server = new cattojs.Server({
   "port": config.port
@@ -449,8 +406,8 @@ server.run().on("running", () => {
   log("INFO", `Scheduled autosave every ${config.autosaveTime}s`);
   var startTime = (performance.now() - serverStartTime);
   var startTimeUnit = "ms";
-  if (startTime >= 1e3) {
-    startTime /= 1e3;
+  if (startTime >= 1000) {
+    startTime /= 1000;
     startTimeUnit = "s";
   }
   log("INFO", `Done (${startTime.toFixed(3)}${startTimeUnit})!`);

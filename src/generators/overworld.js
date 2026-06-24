@@ -1,6 +1,6 @@
 var { createNoise2D } = require("simplex-noise");
 var alea = require("alea");
-var { generateBlock, pickBiome } = require("./utils.js");
+var { generateBlock, pickWeightedRandom } = require("../utils.js");
 
 const scale = (1 / 16);
 const weight = 3;
@@ -35,7 +35,7 @@ module.exports = (world, config, chunkX, chunkY, chunkZ) => {
 
     // Main terrain
     var height = Math.round(noise(worldX * scale, chunkZ * scale) * weight) + baseHeight;
-    var biome = pickBiome(biomeNoise(worldX * biomeScale, chunkZ * biomeScale), biomes);
+    var biome = pickWeightedRandom(biomeNoise(worldX * biomeScale, chunkZ * biomeScale), biomes);
     biomesList.push(biome);
     if (biome == "shyfog:plains") {
       generateBlock(world, chunkX, chunkY, chunkZ, "shyfog:grass_block", worldX, height, chunkZ);
