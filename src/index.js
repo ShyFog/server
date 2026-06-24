@@ -450,6 +450,7 @@ app.listen(config.port, () => {
 
 process.on("SIGINT", () => {
   log("INFO", "Stopping the server");
+  clients.forEach(client => client.close(1000, "Server closed"));
   saveWorld();
   process.exit(0);
 });
