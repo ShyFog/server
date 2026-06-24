@@ -130,7 +130,7 @@ if (fs.existsSync(config.world)) {
     "chunks": {},
     "biomes": {},
     "players": {},
-    seed
+    version, seed
   };
   var generationStartTime = performance.now();
   for (var x = -config.generationDistance; x <= config.generationDistance; x++) {
@@ -249,7 +249,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
           "z": 0,
           "direction": "none",
           "gamemode": config.defaultGamemode,
-          "selectedHotbarSlot": 0
+          "selectedHotbarSlot": 0,
+          "slots": {}
         };
       }
       getPlayers().forEach(client => {
