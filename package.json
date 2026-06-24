@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Official vanilla server software for ShyFog game.",
   "main": "src/index.js",
   "scripts": {

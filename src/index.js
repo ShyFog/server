@@ -1,4 +1,4 @@
-const version = "v0.0.1";
+const version = "v0.0.3";
 const PacketType = {
   "JOIN": 0,
   "REQUIRE_AUTH": 1,
