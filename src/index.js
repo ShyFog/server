@@ -180,11 +180,11 @@ app.ws("/api/shyfog/game", (ws, req) => {
       try {
         msg = JSON.parse(`[${message}]`);
       } catch(_) {
-        return;
+        return ws.close(1002, "Protocol Error: Received invalid packet.");
       }
     }
     if (!Array.isArray(msg) || !msg.length) {
-      return;
+      return ws.close(1002, "Protocol Error: Received invalid packet type.");
     }
     var [ op, ...data ] = msg;
     if (op == PacketType.JOIN) {
@@ -194,8 +194,10 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (config.onlineMode) {
         if (!data[0].sessionToken) {
           if (data[0].sessionToken === null) {
+            log("INFO", `${ws.provisionalName} lost connection: Unable to verify username.`);
             return ws.close(1000, "Unable to verify username.");
           }
+          ws.provisionalName = data[0].username;
           return sendPacket(ws, PacketType.REQUIRE_AUTH);
         }
         var result = await fetch(`${config.authServer}/session/verify`, {
@@ -209,6 +211,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
           })
         }).then(res => res.json());
         if (!result.success) {
+          log("INFO", `${ws.provisionalName} lost connection: Unable to verify username.`);
           return ws.close(1000, "Unable to verify username.");
         }
         ws.accountId = result.id;
@@ -220,6 +223,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         }
       } else {
         if (clients.find(client => client.username == data[0].username)) {
+          log("INFO", `${data[0].username} lost connection: Player with this username is already playing on the server.`);
           return ws.close(1000, "Player with this username is already playing on the server.");
         }
         ws.username = data[0].username;
@@ -239,6 +243,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
           };
         }
         world.players[ws.username] = {
+          "dimension": "shyfog:overworld",
           "x": spawnBlock.x,
           "y": (4 * 16) + spawnBlock.y + 1,
           "z": 0,
@@ -251,6 +256,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         sendPlayerData(ws, client.username);
         sendPlayerData(client, ws.username);
       });
+      log("INFO", `ID of player ${ws.username} is ${ws.accountId}`);
       log("INFO", `${ws.username}[/${req.ip}] logged in at (${world.players[ws.username].x}, ${world.players[ws.username].y}, ${world.players[ws.username].z})`);
       var playerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var playerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
@@ -274,6 +280,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
       return;
     }
     if (!ws.username) {
+      if (ws.provisionalName) {
+        log("INFO", `${ws.provisionalName} lost connection due to protocol error`);
+      }
       return ws.close(1002, "Sent packet without joining.");
     }
     if (op == PacketType.MOVEMENT) {
