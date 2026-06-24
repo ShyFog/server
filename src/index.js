@@ -405,7 +405,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
 
 log("INFO", `Starting ShyFog server on *:${config.port}`);
 app.listen(config.port, () => {
-  setInterval(saveWorld, config.autosaveTime *1e3);
+  setInterval(saveWorld, config.autosaveTime *1000);
   log("INFO", `Scheduled autosave every ${config.autosaveTime}s`);
   var startTime = (performance.now() - serverStartTime);
   var startTimeUnit = "ms";
