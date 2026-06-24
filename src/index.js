@@ -168,8 +168,8 @@ app.get("/api/shyfog/ping", (req, res) => {
 app.ws("/api/shyfog/game", (ws, req) => {
   clients.push(ws);
   ws.on("message", async message => {
-    if (message == "PING") {
-      return ws.send("PONG");
+    if (typeof message === "string" && message.startsWith("PING")) {
+      return ws.send(`PONG${message.slice(4)}`);
     }
     var msg = null;
     try {
