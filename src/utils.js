@@ -1,6 +1,12 @@
-var chalk = require("chalk");
-var pako = require("pako");
-var Big = require("big.js");
+if (typeof game !== "undefined") {
+  var items = game.items;
+}
+if (typeof require !== "undefined") {
+  var chalk = require("chalk");
+  var pako = require("pako");
+  var Big = require("big.js");
+  var items = require("../data/items.js");
+}
 
 function log(type, text) {
   var date = new Date;
@@ -78,4 +84,73 @@ function pickWeightedRandom(noiseValue, options) {
   return entries[entries.length - 1][0];
 }
 
-module.exports = { pako, Big, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom };
+function giveItem(player, item, amount) {
+  var remainingAmount = amount;
+
+  // First, try to find this item in hotbar
+  for (var hotbarIndex = 0; hotbarIndex < 9; hotbarIndex++) {
+    if (player.slots[`hotbar.${hotbarIndex}`] && player.slots[`hotbar.${hotbarIndex}`].item == item) {
+      // Found, give as much as possible up to stack size
+      var givingAmount = Math.min(items[item].stackSize - player.slots[`hotbar.${hotbarIndex}`].count, remainingAmount);
+      player.slots[`hotbar.${hotbarIndex}`].count += givingAmount;
+      remainingAmount -= givingAmount;
+      if (remainingAmount < 1) {
+        return true;
+      }
+    }
+  }
+
+  // Second, try to find this item in inventory
+  for (var inventoryIndex = 0; inventoryIndex < 27; inventoryIndex++) {
+    if (player.slots[`inventory.${inventoryIndex}`] && player.slots[`inventory.${inventoryIndex}`].item == item) {
+      // Found, give as much as possible up to stack size
+      var givingAmount = Math.min(items[item].stackSize - player.slots[`inventory.${inventoryIndex}`].count, remainingAmount);
+      player.slots[`inventory.${inventoryIndex}`].count += givingAmount;
+      remainingAmount -= givingAmount;
+      if (remainingAmount < 1) {
+        return true;
+      }
+    }
+  }
+
+  // If we're still here, we need to fill an empty slot to give items
+
+  // Check hotbar first
+  for (var hotbarIndex = 0; hotbarIndex < 9; hotbarIndex++) {
+    if (!player.slots[`hotbar.${hotbarIndex}`]) {
+      // Found an empty slot, give stack size
+      var givingAmount = Math.min(items[item].stackSize, remainingAmount);
+      player.slots[`hotbar.${hotbarIndex}`] = {
+        item,
+        "count": givingAmount
+      };
+      remainingAmount -= givingAmount;
+      if (remainingAmount < 1) {
+        return true;
+      }
+    }
+  }
+
+  // Then inventory
+  for (var inventoryIndex = 0; inventoryIndex < 27; inventoryIndex++) {
+    if (!player.slots[`inventory.${inventoryIndex}`]) {
+      // Found an empty slot, give stack size
+      var givingAmount = Math.min(items[item].stackSize, remainingAmount);
+      player.slots[`inventory.${inventoryIndex}`] = {
+        item,
+        "count": givingAmount
+      };
+      remainingAmount -= givingAmount;
+      if (remainingAmount < 1) {
+        return true;
+      }
+    }
+  }
+
+  // If we're still here, the inventory is too full to give items
+  return false;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { pako, Big, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, items };
+}

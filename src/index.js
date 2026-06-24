@@ -61,8 +61,12 @@ function getPlayers() {
   return clients.filter(client => client.username);
 }
 
+function broadcastPacket(send) {
+  getPlayers().forEach(client => send(client));
+}
+
 var serverStartTime = performance.now();
-var { pako, Big, log, sendPacket, bigFloor, bigToNumber } = require("./utils.js");
+var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items } = require("./utils.js");
 log("INFO", "Loading libraries...");
 
 var express = require("express");
@@ -71,11 +75,6 @@ var fs = require("fs");
 var overworldGenerator = require("./generators/overworld.js");
 
 log("INFO", `Starting ShyFog server version ${version}...`);
-
-if (!fs.existsSync("data")) {
-  log("FATAL", "Unable to find data submodule");
-  process.exit(1);
-}
 
 if (!fs.existsSync("config.json")) {
   log("WARN", "Config does not exist, creating");
@@ -164,7 +163,7 @@ app.options("*", (req, res) => {
 app.get("/api/shyfog/ping", (req, res) => {
   res.json({
     "success": true,
-    "onlinePlayers": clients.filter(client => client.username).length,
+    "onlinePlayers": getPlayers().length,
     "maxPlayers": config.maxPlayers,
     "motd": config.motd,
     "icon": config.icon ? `data:image/png;base64,${fs.readFileSync(config.icon).toString("base64")}` : null
@@ -358,6 +357,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (blockId == -1) {
         return;
       }
+      var blockType = world.chunks[`${chunkX},${chunkY},${z}`][blockId].block;
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
       getPlayers().forEach(client => {
         var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
@@ -366,6 +366,11 @@ app.ws("/api/shyfog/game", (ws, req) => {
           sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
         }
       });
+      if (world.players[ws.username].gamemode == "survival") {
+        items[blockType].drop({
+          world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket
+        });
+      }
     }
     if (op == PacketType.USE) {
       var [ x, y, z ] = data;
@@ -386,8 +391,14 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (blockId > -1) {
         return;
       }
+      if (!world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`]) {
+        return;
+      }
+      if (!items[world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item].placeable) {
+        return;
+      }
       var newBlock = {
-        "block": "shyfog:cobblestone",
+        "block": world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item,
         x, y
       };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
@@ -398,6 +409,10 @@ app.ws("/api/shyfog/game", (ws, req) => {
           sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
       });
+      if (--world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].count < 1) {
+        world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`] = null;
+      }
+      sendPlayerData(ws, ws.username);
     }
     if (op == PacketType.HOTBAR_SWITCH) {
       world.players[ws.username].selectedHotbarSlot = data[0];
