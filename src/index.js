@@ -1,5 +1,5 @@
 const software = "Vanilla";
-const version = "v0.0.3";
+const version = "v0.0.4";
 const PacketType = {
   "JOIN": 0,
   "REQUIRE_AUTH": 1,
