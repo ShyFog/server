@@ -80,6 +80,9 @@ if (!fs.existsSync("config.json")) {
   log("WARN", "Config does not exist, creating");
   fs.writeFileSync("config.json", JSON.stringify({
     "port": 6280,
+    "ssl": false,
+    "sslCert": "",
+    "sslKey": "",
     "motd": "A ShyFog server",
     "maxPlayers": 20,
     "icon": "",
@@ -460,7 +463,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
 });
 
 log("INFO", `Starting ShyFog server on *:${config.port}`);
-app.listen(config.port, () => {
+
+function onListen() {
   setInterval(saveWorld, config.autosaveTime *1000);
   log("INFO", `Scheduled autosave every ${config.autosaveTime}s`);
   var startTime = (performance.now() - serverStartTime);
@@ -470,7 +474,16 @@ app.listen(config.port, () => {
     startTimeUnit = "s";
   }
   log("INFO", `Done (${startTime.toFixed(3)}${startTimeUnit})!`);
-});
+}
+
+if (config.ssl) {
+  https.createServer({
+    "cert": fs.readFileSync(config.sslCert),
+    "key": fs.readFileSync(config.sslKey)
+  }, app).listen(config.port, onListen);
+} else {
+  app.listen(config.port, onListen);
+}
 
 process.on("SIGINT", () => {
   log("INFO", "Stopping the server");
