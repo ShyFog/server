@@ -110,6 +110,31 @@ function executeCommand(executorId, executorName, cmd) {
         });
       }
       return;
+    case "gamemode":
+      var gamemode = args[0];
+      var player = args[1];
+      if (!gamemode) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!player) {
+        if (executorId == -1) {
+          return log("INFO", "A player is required to run this command here");
+        }
+        player = executorName;
+      }
+      if (!world.players[player]) {
+        return log("INFO", "No player was found");
+      }
+      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
+        return log("INFO", `Unknown game mode: ${gamemode}`);
+      }
+      world.players[player].gamemode = gamemode;
+      log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
+      var client = getPlayers().find(client => client.username == player);
+      if (client) {
+        sendPacket(client, PacketType.PLAYER_METADATA, player, { gamemode });
+      }
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
