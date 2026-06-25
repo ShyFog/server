@@ -538,9 +538,12 @@ if (config.ssl) {
   app.listen(config.port, onListen);
 }
 
-process.on("SIGINT", () => {
+function onStop() {
   log("INFO", "Stopping the server");
   clients.forEach(client => client.close(1000, "Server closed"));
   saveWorld();
   process.exit(0);
-});
+};
+
+process.on("SIGINT", onStop);
+consoleInput.on("SIGINT", onStop);
