@@ -73,6 +73,7 @@ log("INFO", "Loading libraries...");
 var express = require("express");
 var expressWs = require("express-ws");
 var fs = require("fs");
+var https = require("https");
 var overworldGenerator = require("./generators/overworld.js");
 
 log("INFO", `Starting ShyFog server version ${version}...`);
