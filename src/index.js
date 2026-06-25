@@ -72,8 +72,46 @@ function executeCommand(executorId, executorName, cmd) {
   var args = cmd.split(" ");
   var command = args.shift();
   switch(command) {
+    case "give":
+      var player = args[0];
+      var item = args[1];
+      var amount = args[2];
+      if (!player) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!item) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!item.includes(":")) {
+        item = `shyfog:${item}`;
+      }
+      if (!amount) {
+        amount = "1";
+      }
+      amount = parseInt(amount);
+      if (!world.players[player]) {
+        return log("INFO", "No player was found");
+      }
+      if (!items[item]) {
+        return log("INFO", `Unknown item '${item}'`);
+      }
+      if (isNaN(amount)) {
+        return log("INFO", "Expected integer");
+      }
+      if (amount < 1) {
+        return log("INFO", `Integer must not be less than 1: found ${amount}`);
+      }
+      giveItem(world.players[player], item, amount);
+      log("INFO", `Gave ${amount} [${item}] to ${player}`);
+      var client = getPlayers().find(client => client.username == player);
+      if (client) {
+        sendPacket(client, PacketType.PLAYER_METADATA, player, {
+          "slots": world.players[player].slots
+        });
+      }
+      return;
     default:
-      log("INFO", "Unknown or incomplete command.");
+      return log("INFO", "Unknown command.");
   }
 }
 
