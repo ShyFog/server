@@ -116,7 +116,16 @@ log("INFO", "Loading config");
 var config = JSON.parse(fs.readFileSync("config.json").toString("utf-8"));
 
 var app = express();
-expressWs(app);
+var sslServer = null;
+if (config.ssl) {
+  sslServer = https.createServer({
+    "cert": fs.readFileSync(config.sslCert),
+    "key": fs.readFileSync(config.sslKey)
+  }, app);
+  expressWs(app, sslServer);
+} else {
+  expressWs(app);
+}
 var clients = [];
 var world = null;
 if (fs.existsSync(config.world)) {
@@ -492,10 +501,7 @@ function onListen() {
 }
 
 if (config.ssl) {
-  https.createServer({
-    "cert": fs.readFileSync(config.sslCert),
-    "key": fs.readFileSync(config.sslKey)
-  }, app).listen(config.port, onListen);
+  sslServer.listen(config.port, onListen);
 } else {
   app.listen(config.port, onListen);
 }
