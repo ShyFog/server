@@ -250,7 +250,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         } else {
           ws.skin = `data:image/png;base64,${fs.readFileSync(config.offlineSkin).toString("base64")}`;
         }
-        if (world.playerIds[ws.accountId] != ws.username) {
+        if (world.playerIds[ws.accountId] && world.playerIds[ws.accountId] != ws.username) {
           log("INFO", `Migrating player data for username change: ${world.playerIds[ws.accountId]} --> ${ws.username}`);
           world.players[ws.username] = world.players[world.playerIds[ws.accountId]];
           delete world.players[world.playerIds[ws.accountId]];
