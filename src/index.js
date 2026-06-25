@@ -163,9 +163,9 @@ if (fs.existsSync(config.world)) {
   var spawnBlocks = world.chunks[spawnChunk].filter(block => block && !transparentBlocks.includes(block.block) && (!getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(getBlock(world, (chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
   var spawnBlock = spawnBlocks[Math.floor(Math.random() *spawnBlocks.length)];
   world.spawn = {
-    "x": (chunkX * 16) + spawnBlock.x,
-    "y": (chunkY * 16) + spawnBlock.y + 1,
-    "z": chunkZ
+    "x": ((chunkX * 16) + spawnBlock.x).toString(),
+    "y": ((chunkY * 16) + spawnBlock.y + 1).toString(),
+    "z": chunkZ.toString()
   };
   log("INFO", `Time elapsed: ${Math.round(performance.now() - generationStartTime)} ms`);
   saveWorld();
