@@ -1,3 +1,4 @@
+const software = "Vanilla";
 const version = "v0.0.3";
 const PacketType = {
   "JOIN": 0,
@@ -189,6 +190,7 @@ app.options("*", (req, res) => {
 app.get("/api/shyfog/ping", (req, res) => {
   res.json({
     "success": true,
+    software, version,
     "onlinePlayers": getPlayers().length,
     "maxPlayers": config.maxPlayers,
     "motd": config.motd,
@@ -267,7 +269,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         ws.username = data[0].username;
         ws.skin = `data:image/png;base64,${fs.readFileSync(config.offlineSkin).toString("base64")}`;
       }
-      sendPacket(ws, PacketType.JOIN);
+      sendPacket(ws, PacketType.JOIN, { software, version });
       sendWorldData(ws);
       if (!world.players[ws.username]) {
         world.players[ws.username] = {
