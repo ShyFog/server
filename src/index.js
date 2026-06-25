@@ -401,13 +401,13 @@ app.ws("/api/shyfog/game", (ws, req) => {
       }
       var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
       if (blockId > -1) {
-        return;
+        return sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       }
       if (!world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`]) {
-        return;
+        return sendPlayerData(ws, ws.username);
       }
       if (!items[world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item].placeable) {
-        return;
+        return sendPlayerData(ws, ws.username);
       }
       var newBlock = {
         "block": world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item,
