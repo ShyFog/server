@@ -34,11 +34,13 @@ function sendChunks(ws, chunks) {
 }
 
 function sendWorldData(ws) {
-  var { skyColor, void: void_, voidY, reducedDebugInfo } = config;
+  var { skyColor, void: void_, voidY, allowBuildingInVoid, worldHeight, reducedDebugInfo } = config;
   sendPacket(ws, PacketType.WORLD_METADATA, {
     skyColor,
     "void": void_,
     voidY,
+    allowBuildingInVoid,
+    worldHeight,
     reducedDebugInfo
   });
 }
@@ -103,6 +105,8 @@ if (!fs.existsSync("config.json")) {
     "skyColor": "#4de7ff",
     "void": true,
     "voidY": -65,
+    "allowBuildingInVoid": false,
+    "worldHeight": 319,
     "jumpHeight": 1.2522,
     "reducedDebugInfo": false
   }, null, 2));
@@ -411,6 +415,14 @@ app.ws("/api/shyfog/game", (ws, req) => {
       }
       if (!world.chunks[`${chunkX},${chunkY},${z}`]) {
         return;
+      }
+      if (!config.allowBuildingInVoid && (chunkY * 16) + y <= config.voidY) {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        return sendWorldData(ws);
+      }
+      if (config.worldHeight !== null && (chunkY * 16) + y > config.worldHeight) {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        return sendWorldData(ws);
       }
       var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
       if (blockId > -1) {
