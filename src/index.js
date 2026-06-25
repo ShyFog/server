@@ -401,7 +401,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
       }
       var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
       if (blockId > -1) {
-        return sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        return sendPlayerData(ws, ws.username);
       }
       if (!world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`]) {
         return sendPlayerData(ws, ws.username);
