@@ -138,6 +138,7 @@ if (fs.existsSync(config.world)) {
     "chunks": {},
     "biomes": {},
     "players": {},
+    "playerIds": {},
     version, seed
   };
   var generationStartTime = performance.now();
@@ -249,6 +250,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
         } else {
           ws.skin = `data:image/png;base64,${fs.readFileSync(config.offlineSkin).toString("base64")}`;
         }
+        if (world.playerIds[ws.accountId] != ws.username) {
+          log("INFO", `Migrating player data for username change: ${world.playerIds[ws.accountId]} --> ${ws.username}`);
+          world.players[ws.username] = world.players[world.playerIds[ws.accountId]];
+          delete world.players[world.playerIds[ws.accountId]];
+        }
+        world.playerIds[ws.accountId] = ws.username;
       } else {
         if (clients.find(client => client.username == data[0].username)) {
           log("INFO", `${data[0].username} lost connection: Player with this username is already playing on the server.`);
