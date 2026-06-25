@@ -380,7 +380,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
       });
       if (world.players[ws.username].gamemode == "survival") {
         items[blockType].drop({
-          world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket
+          world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket, PacketType
         });
       }
     }
@@ -415,6 +415,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
       };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
       getPlayers().forEach(client => {
+        if (client === ws) {
+          return;
+        }
         var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
         var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
@@ -425,7 +428,6 @@ app.ws("/api/shyfog/game", (ws, req) => {
         if (--world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].count < 1) {
           world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`] = null;
         }
-        sendPlayerData(ws, ws.username);
       }
     }
     if (op == PacketType.HOTBAR_SWITCH) {
