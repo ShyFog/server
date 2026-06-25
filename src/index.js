@@ -68,6 +68,15 @@ function broadcastPacket(send) {
   getPlayers().forEach(client => send(client));
 }
 
+function executeCommand(executorId, executorName, cmd) {
+  var args = cmd.split(" ");
+  var command = args.shift();
+  switch(command) {
+    default:
+      log("INFO", "Unknown or incomplete command.");
+  }
+}
+
 var serverStartTime = performance.now();
 var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items, getBlock } = require("./utils.js");
 log("INFO", "Loading libraries...");
@@ -76,6 +85,7 @@ var express = require("express");
 var expressWs = require("express-ws");
 var fs = require("fs");
 var https = require("https");
+var readline = require("readline");
 var overworldGenerator = require("./generators/overworld.js");
 
 log("INFO", `Starting ShyFog server version ${version}...`);
@@ -127,6 +137,10 @@ if (config.ssl) {
   expressWs(app);
 }
 var clients = [];
+var consoleInput = readline.createInterface({
+  "input": process.stdin,
+  "output": process.stdout
+});
 var world = null;
 if (fs.existsSync(config.world)) {
   log("INFO", `Loading "${config.world}"`);
@@ -488,7 +502,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
 
 log("INFO", `Starting ShyFog server on *:${config.port}`);
 
-function onListen() {
+async function onListen() {
   setInterval(saveWorld, config.autosaveTime *1000);
   log("INFO", `Scheduled autosave every ${config.autosaveTime}s`);
   var startTime = (performance.now() - serverStartTime);
@@ -498,6 +512,14 @@ function onListen() {
     startTimeUnit = "s";
   }
   log("INFO", `Done (${startTime.toFixed(3)}${startTimeUnit})!`);
+
+  // Console commands
+  while(true) {
+    var command = await new Promise(res => {
+      consoleInput.question("", res);
+    });
+    executeCommand(-1, "Console", command);
+  }
 }
 
 if (config.ssl) {
