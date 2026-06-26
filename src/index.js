@@ -851,6 +851,9 @@ async function onListen() {
     var command = await new Promise(res => {
       consoleInput.question("", res);
     });
+    if (command.startsWith("/")) {
+      command = command.slice(1);
+    }
     executeCommand(-1, "Server", command);
   }
 }
