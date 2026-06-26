@@ -216,6 +216,89 @@ function executeCommand(executorId, executorName, cmd) {
       world.bannedNames.splice(banIndex, 1);
       log("INFO", `Unbanned ${player}`);
       return;
+    case "setblock":
+      var x = args[0];
+      var y = args[1];
+      var z = args[2];
+      var block = args[3];
+      if (!x) {
+        return log("INFO", "Incomplete command.");
+      }
+      x = parseInt(x);
+      if (isNaN(x)) {
+        return log("INFO", "Expected integer");
+      }
+      if (!y) {
+        return log("INFO", "Incomplete command.");
+      }
+      y = parseInt(y);
+      if (isNaN(y)) {
+        return log("INFO", "Expected integer");
+      }
+      if (!z) {
+        return log("INFO", "Incomplete command.");
+      }
+      z = parseInt(z);
+      if (isNaN(z)) {
+        return log("INFO", "Expected integer");
+      }
+      if (!block) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!block.includes(":")) {
+        block = `shyfog:${block}`;
+      }
+      if (args.length > 4) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      // Allow shyfog:air, even though it doesn't actually exist, handle it specially
+      if (!items[block] && block != "shyfog:air") {
+        return log("INFO", `Unknown block type '${block}'`);
+      }
+      var chunkX = Math.floor(x / 16);
+      var chunkY = Math.floor(y / 16);
+      x = Math.floor(x) % 16;
+      y = Math.floor(y) % 16;
+      if (x < 0) {
+        x += 16;
+      }
+      if (y < 0) {
+        y += 16;
+      }
+      if (!config.allowBuildingInVoid && (chunkY * 16) + y <= config.voidY) {
+        return log("INFO", "That position is out of this world!");
+      }
+      if (config.worldHeight !== null && (chunkY * 16) + y > config.worldHeight) {
+        return log("INFO", "That position is out of this world!");
+      }
+      if (!world.chunks[`${chunkX},${chunkY},${z}`]) {
+        return log("INFO", "That position is not generated");
+      }
+      var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
+      if (blockId > -1) {
+        world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
+        broadcastPacket(client => {
+          var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
+          var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+          if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
+            sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
+          }
+        });
+      }
+      if (block == "shyfog:air") {
+        return log("INFO", `Changed the block at ${x}, ${y}, ${z}`);
+      }
+      var newBlock = { block, x, y };
+      world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
+      broadcastPacket(client => {
+        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
+        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
+          sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
+        }
+      });
+      log("INFO", `Changed the block at ${x}, ${y}, ${z}`);
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
@@ -567,7 +650,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
       }
       var blockType = world.chunks[`${chunkX},${chunkY},${z}`][blockId].block;
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
-      getPlayers().forEach(client => {
+      broadcastPacket(client => {
         var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
         var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
@@ -629,7 +712,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         x, y
       };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
-      getPlayers().forEach(client => {
+      broadcastPacket(client => {
         if (client === ws) {
           return;
         }
