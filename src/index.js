@@ -175,15 +175,14 @@ function executeCommand(executorId, executorName, cmd) {
           return log("INFO", "Nothing changed. The player is already banned");
         }
         world.bannedIds.push({
-          "player": accountId,
-          reason
+          "player": accountId, executorId, executorName, reason
         });
       } else {
         if (world.bannedNames.find(ban => ban.player == player)) {
           return log("INFO", "Nothing changed. The player is already banned");
         }
         world.bannedNames.push({
-          player, reason
+          player, reason, executorId, executorName
         });
       }
       log("INFO", `Banned ${player}: ${reason}`);
@@ -298,6 +297,29 @@ function executeCommand(executorId, executorName, cmd) {
         }
       });
       log("INFO", `Changed the block at ${x}, ${y}, ${z}`);
+      return;
+    case "banlist":
+      if (args.length) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      if (!world.bannedIds.length && !world.bannedNames.length) {
+        return log("INFO", "There are no bans");
+      }
+      log("INFO", `There are ${world.bannedIds.length + world.bannedNames.length} ban(s):`);
+      for (var ban of world.bannedIds) {
+        if (ban.executorId > 0) {
+          log("INFO", `${world.playerIds[ban.player]} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
+        } else {
+          log("INFO", `${world.playerIds[ban.player]} was banned by ${ban.executorName}: ${ban.reason}`);
+        }
+      }
+      for (var ban of world.bannedNames) {
+        if (ban.executorId > 0) {
+          log("INFO", `${ban.player} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
+        } else {
+          log("INFO", `${ban.player} was banned by ${ban.executorName}: ${ban.reason}`);
+        }
+      }
       return;
     default:
       return log("INFO", "Unknown command.");
@@ -768,7 +790,7 @@ async function onListen() {
     var command = await new Promise(res => {
       consoleInput.question("", res);
     });
-    executeCommand(-1, "Console", command);
+    executeCommand(-1, "Server", command);
   }
 }
 
