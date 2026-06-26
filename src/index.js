@@ -186,6 +186,27 @@ function executeCommand(executorId, executorName, cmd) {
         client.close(1000, "You are banned from this server");
       }
       return;
+    case "pardon":
+      var player = args[0];
+      if (!player) {
+        return log("INFO", "Incomplete command.");
+      }
+      var accountId = Object.keys(world.playerIds).find(id => world.playerIds[id] == player);
+      if (accountId) {
+        var banIndex = world.bannedIds.findIndex(ban => ban.player == accountId);
+        if (banIndex > -1) {
+          world.bannedIds.splice(banIndex, 1);
+          log("INFO", `Unbanned ${player}`);
+          return;
+        }
+      }
+      var banIndex = world.bannedNames.findIndex(ban => ban.player == player);
+      if (banIndex == -1) {
+        return log("INFO", "Nothing changed. The player isn't banned");
+      }
+      world.bannedNames.splice(banIndex, 1);
+      log("INFO", `Unbanned ${player}`);
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
