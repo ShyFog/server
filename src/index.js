@@ -56,6 +56,7 @@ function sendPlayerData(ws, username) {
       "rotation": 0
     }],
     "jumpHeight": config.jumpHeight,
+    "maximumRange": config.maximumRange,
     "skin": clients.find(client => client.username == username).skin
   }));
 }
@@ -427,7 +428,8 @@ if (!fs.existsSync("config.json")) {
     "allowBuildingInVoid": false,
     "worldHeight": 319,
     "jumpHeight": 1.2522,
-    "reducedDebugInfo": false
+    "reducedDebugInfo": false,
+    "maximumRange": "4.5"
   }, null, 2));
 }
 
