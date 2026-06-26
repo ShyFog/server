@@ -252,6 +252,8 @@ function executeCommand(executorId, executorName, cmd) {
       world.bannedNames.splice(banIndex, 1);
       log("INFO", `Unbanned ${player}`);
       return;
+    case "save-all":
+      return saveWorld();
     case "setblock":
       var x = args[0];
       var y = args[1];
