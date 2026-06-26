@@ -154,6 +154,38 @@ function executeCommand(executorId, executorName, cmd) {
       log("INFO", `Kicked ${player}: ${reason}`);
       client.close(1000, reason);
       return;
+    case "ban":
+      var player = args[0];
+      var reason = args.slice(1).join(" ");
+      if (!player) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!reason) {
+        reason = "Banned by an operator.";
+      }
+      var accountId = Object.keys(world.playerIds).find(id => world.playerIds[id] == player);
+      if (accountId) {
+        if (world.bannedIds.find(ban => ban.player == accountId)) {
+          return log("INFO", "Nothing changed. The player is already banned");
+        }
+        world.bannedIds.push({
+          "player": accountId,
+          reason
+        });
+      } else {
+        if (world.bannedNames.find(ban => ban.player == player)) {
+          return log("INFO", "Nothing changed. The player is already banned");
+        }
+        world.bannedNames.push({
+          player, reason
+        });
+      }
+      log("INFO", `Banned ${player}: ${reason}`);
+      var client = getPlayers().find(client => client.username == player);
+      if (client) {
+        client.close(1000, "You are banned from this server");
+      }
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
@@ -253,6 +285,9 @@ if (fs.existsSync(config.world)) {
     "biomes": {},
     "players": {},
     "playerIds": {},
+    "bannedNames": [],
+    "bannedIds": [],
+    "bannedIps": [],
     version, seed
   };
   var generationStartTime = performance.now();
@@ -358,6 +393,10 @@ app.ws("/api/shyfog/game", (ws, req) => {
           log("INFO", `${ws.provisionalName} lost connection: Unable to verify username.`);
           return ws.close(1000, "Unable to verify username.");
         }
+        var foundBan = (world.bannedIds.find(ban => ban.player == result.id) || world.bannedNames.find(ban => ban.player == result.username));
+        if (foundBan) {
+          return ws.close(1000, `You are banned from this server.\nReason: ${foundBan.reason}`);
+        }
         ws.accountId = result.id;
         ws.username = result.username;
         if (config.useOnlineSkins) {
@@ -375,6 +414,10 @@ app.ws("/api/shyfog/game", (ws, req) => {
         if (clients.find(client => client.username == data[0].username)) {
           log("INFO", `${data[0].username} lost connection: Player with this username is already playing on the server.`);
           return ws.close(1000, "Player with this username is already playing on the server.");
+        }
+        var foundBan = world.bannedNames.find(ban => ban.player == data[0].username);
+        if (foundBan) {
+          return ws.close(1000, `You are banned from this server.\nReason: ${foundBan.reason}`);
         }
         ws.username = data[0].username;
         ws.skin = `data:image/png;base64,${fs.readFileSync(config.offlineSkin).toString("base64")}`;
