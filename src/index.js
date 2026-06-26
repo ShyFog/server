@@ -135,6 +135,25 @@ function executeCommand(executorId, executorName, cmd) {
         sendPacket(client, PacketType.PLAYER_METADATA, player, { gamemode });
       }
       return;
+    case "kick":
+      var player = args[0];
+      var reason = args.slice(1).join(" ");
+      if (!player) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!reason) {
+        reason = "Kicked by an operator";
+      }
+      if (!world.players[player]) {
+        return log("INFO", "No player was found");
+      }
+      var client = getPlayers().find(client => client.username == player);
+      if (!client) {
+        return log("INFO", "Player is not online");
+      }
+      log("INFO", `Kicked ${player}: ${reason}`);
+      client.close(1000, reason);
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
@@ -380,6 +399,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
       });
       log("INFO", `ID of player ${ws.username} is ${ws.accountId}`);
       log("INFO", `${ws.username}[/${req.ip}] logged in at (${world.players[ws.username].x}, ${world.players[ws.username].y}, ${world.players[ws.username].z})`);
+      log("INFO", `${ws.username} joined the game`);
       var playerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var playerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
       var playerChunkZ = bigToNumber(new Big(world.players[ws.username].z));
@@ -562,10 +582,11 @@ app.ws("/api/shyfog/game", (ws, req) => {
       });
     }
   });
-  ws.on("close", code => {
+  ws.on("close", (code, reason) => {
     clients = clients.filter(client => client !== ws);
     if (ws.username) {
-      log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : ""}`);
+      log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : `: ${reason}`}`);
+      log("INFO", `${ws.username} left the game`);
       getPlayers().forEach(client => {
         sendPacket(client, PacketType.PLAYER_DISCONNECTED, ws.username);
       });
