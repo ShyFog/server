@@ -72,6 +72,102 @@ function executeCommand(executorId, executorName, cmd) {
   var args = cmd.split(" ");
   var command = args.shift();
   switch(command) {
+    case "ban":
+      var player = args[0];
+      var reason = args.slice(1).join(" ");
+      if (!player) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!reason) {
+        reason = "Banned by an operator.";
+      }
+      var accountId = Object.keys(world.playerIds).find(id => world.playerIds[id] == player);
+      if (accountId) {
+        if (world.bannedIds.find(ban => ban.player == accountId)) {
+          return log("INFO", "Nothing changed. The player is already banned");
+        }
+        world.bannedIds.push({
+          "player": accountId, executorId, executorName, reason
+        });
+      } else {
+        if (world.bannedNames.find(ban => ban.player == player)) {
+          return log("INFO", "Nothing changed. The player is already banned");
+        }
+        world.bannedNames.push({
+          player, reason, executorId, executorName
+        });
+      }
+      log("INFO", `Banned ${player}: ${reason}`);
+      var client = getPlayers().find(client => client.username == player);
+      if (client) {
+        client.close(1000, "You are banned from this server");
+      }
+      return;
+    case "banlist":
+      if (args.length) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      if (!world.bannedIds.length && !world.bannedNames.length) {
+        return log("INFO", "There are no bans");
+      }
+      log("INFO", `There are ${world.bannedIds.length + world.bannedNames.length} ban(s):`);
+      for (var ban of world.bannedIds) {
+        if (ban.executorId > 0) {
+          log("INFO", `${world.playerIds[ban.player]} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
+        } else {
+          log("INFO", `${world.playerIds[ban.player]} was banned by ${ban.executorName}: ${ban.reason}`);
+        }
+      }
+      for (var ban of world.bannedNames) {
+        if (ban.executorId > 0) {
+          log("INFO", `${ban.player} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
+        } else {
+          log("INFO", `${ban.player} was banned by ${ban.executorName}: ${ban.reason}`);
+        }
+      }
+      return;
+    case "defaultgamemode":
+      var gamemode = args[0];
+      if (!gamemode) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (args.length > 1) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
+        return log("INFO", `Unknown game mode: ${gamemode}`);
+      }
+      world.defaultGamemode = gamemode;
+      log("INFO", `The default game mode is now ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
+      return;
+    case "gamemode":
+      var gamemode = args[0];
+      var player = args[1];
+      if (!gamemode) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!player) {
+        if (executorId == -1) {
+          return log("INFO", "A player is required to run this command here");
+        }
+        player = executorName;
+      }
+      if (args.length > 2) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      if (!world.players[player]) {
+        return log("INFO", "No player was found");
+      }
+      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
+        return log("INFO", `Unknown game mode: ${gamemode}`);
+      }
+      world.players[player].gamemode = gamemode;
+      log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
+      var client = getPlayers().find(client => client.username == player);
+      if (client) {
+        sendPacket(client, PacketType.PLAYER_METADATA, player, { gamemode });
+      }
+      return;
     case "give":
       var player = args[0];
       var item = args[1];
@@ -113,34 +209,6 @@ function executeCommand(executorId, executorName, cmd) {
         });
       }
       return;
-    case "gamemode":
-      var gamemode = args[0];
-      var player = args[1];
-      if (!gamemode) {
-        return log("INFO", "Incomplete command.");
-      }
-      if (!player) {
-        if (executorId == -1) {
-          return log("INFO", "A player is required to run this command here");
-        }
-        player = executorName;
-      }
-      if (args.length > 2) {
-        return log("INFO", "Incorrect argument for command");
-      }
-      if (!world.players[player]) {
-        return log("INFO", "No player was found");
-      }
-      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
-        return log("INFO", `Unknown game mode: ${gamemode}`);
-      }
-      world.players[player].gamemode = gamemode;
-      log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
-      var client = getPlayers().find(client => client.username == player);
-      if (client) {
-        sendPacket(client, PacketType.PLAYER_METADATA, player, { gamemode });
-      }
-      return;
     case "kick":
       var player = args[0];
       var reason = args.slice(1).join(" ");
@@ -159,37 +227,6 @@ function executeCommand(executorId, executorName, cmd) {
       }
       log("INFO", `Kicked ${player}: ${reason}`);
       client.close(1000, reason);
-      return;
-    case "ban":
-      var player = args[0];
-      var reason = args.slice(1).join(" ");
-      if (!player) {
-        return log("INFO", "Incomplete command.");
-      }
-      if (!reason) {
-        reason = "Banned by an operator.";
-      }
-      var accountId = Object.keys(world.playerIds).find(id => world.playerIds[id] == player);
-      if (accountId) {
-        if (world.bannedIds.find(ban => ban.player == accountId)) {
-          return log("INFO", "Nothing changed. The player is already banned");
-        }
-        world.bannedIds.push({
-          "player": accountId, executorId, executorName, reason
-        });
-      } else {
-        if (world.bannedNames.find(ban => ban.player == player)) {
-          return log("INFO", "Nothing changed. The player is already banned");
-        }
-        world.bannedNames.push({
-          player, reason, executorId, executorName
-        });
-      }
-      log("INFO", `Banned ${player}: ${reason}`);
-      var client = getPlayers().find(client => client.username == player);
-      if (client) {
-        client.close(1000, "You are banned from this server");
-      }
       return;
     case "pardon":
       var player = args[0];
@@ -298,29 +335,6 @@ function executeCommand(executorId, executorName, cmd) {
       });
       log("INFO", `Changed the block at ${x}, ${y}, ${z}`);
       return;
-    case "banlist":
-      if (args.length) {
-        return log("INFO", "Incorrect argument for command");
-      }
-      if (!world.bannedIds.length && !world.bannedNames.length) {
-        return log("INFO", "There are no bans");
-      }
-      log("INFO", `There are ${world.bannedIds.length + world.bannedNames.length} ban(s):`);
-      for (var ban of world.bannedIds) {
-        if (ban.executorId > 0) {
-          log("INFO", `${world.playerIds[ban.player]} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
-        } else {
-          log("INFO", `${world.playerIds[ban.player]} was banned by ${ban.executorName}: ${ban.reason}`);
-        }
-      }
-      for (var ban of world.bannedNames) {
-        if (ban.executorId > 0) {
-          log("INFO", `${ban.player} was banned by ${world.playerIds[ban.executorId]}: ${ban.reason}`);
-        } else {
-          log("INFO", `${ban.player} was banned by ${ban.executorName}: ${ban.reason}`);
-        }
-      }
-      return;
     default:
       return log("INFO", "Unknown command.");
   }
@@ -423,6 +437,7 @@ if (fs.existsSync(config.world)) {
     "bannedNames": [],
     "bannedIds": [],
     "bannedIps": [],
+    "defaultGamemode": config.defaultGamemode,
     version, seed
   };
   var generationStartTime = performance.now();
@@ -566,7 +581,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
           "y": world.spawn.y,
           "z": world.spawn.z,
           "direction": "none",
-          "gamemode": config.defaultGamemode,
+          "gamemode": world.defaultGamemode,
           "selectedHotbarSlot": 0,
           "slots": {}
         };
