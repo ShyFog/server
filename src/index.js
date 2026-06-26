@@ -261,25 +261,13 @@ function executeCommand(executorId, executorName, cmd) {
       var y = args[1];
       var z = args[2];
       var block = args[3];
-      if (!x) {
+      if (!x || !y || !z) {
         return log("INFO", "Incomplete command.");
       }
       x = parseInt(x);
-      if (isNaN(x)) {
-        return log("INFO", "Expected integer");
-      }
-      if (!y) {
-        return log("INFO", "Incomplete command.");
-      }
       y = parseInt(y);
-      if (isNaN(y)) {
-        return log("INFO", "Expected integer");
-      }
-      if (!z) {
-        return log("INFO", "Incomplete command.");
-      }
       z = parseInt(z);
-      if (isNaN(z)) {
+      if (isNaN(x) || isNaN(y) || isNaN(z)) {
         return log("INFO", "Expected integer");
       }
       if (!block) {
@@ -338,6 +326,27 @@ function executeCommand(executorId, executorName, cmd) {
         }
       });
       log("INFO", `Changed the block at ${x}, ${y}, ${z}`);
+      return;
+    case "setworldspawn":
+      var x = args[0];
+      var y = args[1];
+      var z = args[2];
+      if (!x || !y || !z) {
+        return log("INFO", "Incomplete command.");
+      }
+      x = parseFloat(x);
+      y = parseFloat(y);
+      z = parseFloat(z);
+      if (isNaN(x) || isNaN(y) || isNaN(z)) {
+        return log("INFO", "Expected float");
+      }
+      if (args.length > 3) {
+        return log("INFO", "Incorrect argument for command");
+      }
+      world.spawn.x = x.toString();
+      world.spawn.y = y.toString();
+      world.spawn.z = z.toString();
+      log("INFO", `Set the world spawn point to ${x}, ${y}, ${z} [${x}, ${z}] in shyfog:overworld`);
       return;
     default:
       return log("INFO", "Unknown command.");
