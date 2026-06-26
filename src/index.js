@@ -715,6 +715,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
       });
     }
     if (op == PacketType.BLOCK_BREAK) {
+      if (world.players[ws.username].gamemode == "adventure" || world.players[ws.username].gamemode == "spectator") {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        sendWorldData(ws);
+        sendPlayerData(ws, ws.username);
+        return;
+      }
       var [ x, y, z ] = data;
       var chunkX = Math.floor(x / 16);
       var chunkY = Math.floor(y / 16);
@@ -736,6 +742,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
       var blockType = world.chunks[`${chunkX},${chunkY},${z}`][blockId].block;
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
       broadcastPacket(client => {
+        if (client === ws) {
+          return;
+        }
         var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
         var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
@@ -787,6 +796,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
         return;
       }
       if (!items[world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item].placeable) {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        sendWorldData(ws);
+        sendPlayerData(ws, ws.username);
+        return;
+      }
+      if (world.players[ws.username].gamemode == "adventure" || world.players[ws.username].gamemode == "spectator") {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
         sendPlayerData(ws, ws.username);
