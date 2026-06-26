@@ -89,6 +89,9 @@ function executeCommand(executorId, executorName, cmd) {
         amount = "1";
       }
       amount = parseInt(amount);
+      if (args.length > 3) {
+        return log("INFO", "Incorrect argument for command");
+      }
       if (!world.players[player]) {
         return log("INFO", "No player was found");
       }
@@ -121,6 +124,9 @@ function executeCommand(executorId, executorName, cmd) {
           return log("INFO", "A player is required to run this command here");
         }
         player = executorName;
+      }
+      if (args.length > 2) {
+        return log("INFO", "Incorrect argument for command");
       }
       if (!world.players[player]) {
         return log("INFO", "No player was found");
@@ -190,6 +196,9 @@ function executeCommand(executorId, executorName, cmd) {
       var player = args[0];
       if (!player) {
         return log("INFO", "Incomplete command.");
+      }
+      if (args.length > 1) {
+        return log("INFO", "Incorrect argument for command");
       }
       var accountId = Object.keys(world.playerIds).find(id => world.playerIds[id] == player);
       if (accountId) {
