@@ -254,6 +254,8 @@ function executeCommand(executorId, executorName, cmd) {
       return;
     case "save-all":
       return saveWorld();
+    case "seed":
+      return log("INFO", `Seed: [${world.seed}]`);
     case "setblock":
       var x = args[0];
       var y = args[1];
