@@ -136,7 +136,7 @@ function executeCommand(executorId, executorName, cmd) {
       if (args.length > 1) {
         return log("INFO", "Incorrect argument for command");
       }
-      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
+      if (!["survival", "adventure", "creative", "spectator"].includes(gamemode)) {
         return log("INFO", `Unknown game mode: ${gamemode}`);
       }
       world.defaultGamemode = gamemode;
@@ -160,7 +160,7 @@ function executeCommand(executorId, executorName, cmd) {
       if (!world.players[player]) {
         return log("INFO", "No player was found");
       }
-      if (!["survival", "topcatto", "creative", "spectator"].includes(gamemode)) {
+      if (!["survival", "adventure", "creative", "spectator"].includes(gamemode)) {
         return log("INFO", `Unknown game mode: ${gamemode}`);
       }
       world.players[player].gamemode = gamemode;
