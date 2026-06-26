@@ -11,7 +11,8 @@ const PacketType = {
   "USE": 7,
   "BLOCK_PLACE": 8,
   "PLAYER_DISCONNECTED": 9,
-  "HOTBAR_SWITCH": 10
+  "HOTBAR_SWITCH": 10,
+  "SERVER_TRANSFER": 11
 };
 
 function saveWorld() {
@@ -350,6 +351,36 @@ function executeCommand(executorId, executorName, cmd) {
       return;
     case "stop":
       return onStop();
+    case "transfer":
+      var server = args[0];
+      var forceSSL = args[1];
+      var player = args[2];
+      if (!server) {
+        return log("INFO", "Incomplete command.");
+      }
+      if (!forceSSL) {
+        forceSSL = "false";
+      }
+      if (!["false", "true"].includes(forceSSL)) {
+        return log("INFO", "Expected boolean");
+      }
+      forceSSL = (forceSSL == "true");
+      if (!player) {
+        if (executorId == -1) {
+          return log("INFO", "A player is required to run this command here");
+        }
+        player = executorName;
+      }
+      if (!world.players[player]) {
+        return log("INFO", "No player was found");
+      }
+      var client = getPlayers().find(client => client.username == player);
+      if (!client) {
+        return log("INFO", "Player is not online");
+      }
+      log("INFO", `Transferring ${player} to ${server}`);
+      sendPacket(client, PacketType.SERVER_TRANSFER, server, forceSSL);
+      return;
     default:
       return log("INFO", "Unknown command.");
   }
