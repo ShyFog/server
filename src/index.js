@@ -348,6 +348,8 @@ function executeCommand(executorId, executorName, cmd) {
       world.spawn.z = z.toString();
       log("INFO", `Set the world spawn point to ${x}, ${y}, ${z} [${x}, ${z}] in shyfog:overworld`);
       return;
+    case "stop":
+      return onStop();
     default:
       return log("INFO", "Unknown command.");
   }
