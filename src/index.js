@@ -563,7 +563,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         return ws.close(1002, "Protocol Error: Received invalid packet.");
       }
     }
-    if (!Array.isArray(msg) || !msg.length) {
+    if (!Array.isArray(msg) || !msg.length || typeof msg[0] !== "number") {
       return ws.close(1002, "Protocol Error: Received invalid packet type.");
     }
     var [ op, ...data ] = msg;
