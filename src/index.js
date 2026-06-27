@@ -12,7 +12,9 @@ const PacketType = {
   "BLOCK_PLACE": 8,
   "PLAYER_DISCONNECTED": 9,
   "HOTBAR_SWITCH": 10,
-  "SERVER_TRANSFER": 11
+  "SERVER_TRANSFER": 11,
+  "OPEN_INVENTORY": 12,
+  "OPEN_GUI": 13
 };
 
 function saveWorld() {
@@ -845,6 +847,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
         }
         sendPlayerData(client, ws.username);
       });
+    }
+    if (op == PacketType.OPEN_INVENTORY) {
+      sendPacket(ws, PacketType.OPEN_GUI, "shyfog:inventory");
     }
   });
   ws.on("close", (code, reason) => {
