@@ -311,8 +311,8 @@ function executeCommand(executorId, executorName, cmd) {
       if (blockId > -1) {
         world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
         broadcastPacket(client => {
-          var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
-          var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+          var playerChunkX = bigToNumber(bigFloor((new Big(world.players[client.username].x)).div(16)));
+          var playerChunkY = bigToNumber(bigFloor((new Big(world.players[client.username].y)).div(16)));
           if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
             sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
           }
@@ -324,8 +324,8 @@ function executeCommand(executorId, executorName, cmd) {
       var newBlock = { block, x, y };
       world.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
       broadcastPacket(client => {
-        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
-        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        var playerChunkX = bigToNumber(bigFloor((new Big(world.players[client.username].x)).div(16)));
+        var playerChunkY = bigToNumber(bigFloor((new Big(world.players[client.username].y)).div(16)));
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
           sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
@@ -673,16 +673,16 @@ app.ws("/api/shyfog/game", (ws, req) => {
     }
     if (op == PacketType.MOVEMENT) {
       var [ x, y, z, direction ] = data;
-      var oldPlayerChunkX = parseFloat(bigFloor((new Big(world.players[ws.username].x)).div(16)).toString());
-      var oldPlayerChunkY = parseFloat(bigFloor((new Big(world.players[ws.username].y)).div(16)).toString());
-      var oldPlayerChunkZ = parseFloat((new Big(world.players[ws.username].z)).toString());
+      var oldPlayerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
+      var oldPlayerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
+      var oldPlayerChunkZ = bigToNumber((new Big(world.players[ws.username].z)));
       world.players[ws.username].x = x;
       world.players[ws.username].y = y;
       world.players[ws.username].z = z;
       world.players[ws.username].direction = direction;
-      var playerChunkX = parseFloat(bigFloor((new Big(world.players[ws.username].x)).div(16)).toString());
-      var playerChunkY = parseFloat(bigFloor((new Big(world.players[ws.username].y)).div(16)).toString());
-      var playerChunkZ = parseFloat((new Big(world.players[ws.username].z)).toString());
+      var playerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
+      var playerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
+      var playerChunkZ = bigToNumber((new Big(world.players[ws.username].z)));
       if (oldPlayerChunkX != playerChunkX || oldPlayerChunkY != playerChunkY || oldPlayerChunkZ != playerChunkZ) {
         for (var x = playerChunkX - config.generationDistance; x <= playerChunkX + config.generationDistance; x++) {
           for (var y = playerChunkY - config.generationDistance; y <= playerChunkY + config.generationDistance; y++) {
@@ -757,8 +757,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
         if (client === ws) {
           return;
         }
-        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
-        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        var playerChunkX = bigToNumber(bigFloor((new Big(world.players[client.username].x)).div(16)));
+        var playerChunkY = bigToNumber(bigFloor((new Big(world.players[client.username].y)).div(16)));
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
           sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
         }
@@ -828,8 +828,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
         if (client === ws) {
           return;
         }
-        var playerChunkX = parseFloat(bigFloor((new Big(world.players[client.username].x)).div(16)).toString());
-        var playerChunkY = parseFloat(bigFloor((new Big(world.players[client.username].y)).div(16)).toString());
+        var playerChunkX = bigToNumber(bigFloor((new Big(world.players[client.username].x)).div(16)));
+        var playerChunkY = bigToNumber(bigFloor((new Big(world.players[client.username].y)).div(16)));
         if (playerChunkX >= chunkX - config.viewDistance && playerChunkY >= chunkY - config.viewDistance && playerChunkX <= chunkX + config.viewDistance && playerChunkY <= chunkY + config.viewDistance) {
           sendPacket(client, PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
