@@ -568,6 +568,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
     }
     var [ op, ...data ] = msg;
     if (op == PacketType.JOIN) {
+      if (data.length != 1) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 1`);
+      }
+      if (typeof data[0] !== "object") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not an object`);
+      }
       if (clients.filter(client => client.username).length >= config.maxPlayers) {
         return ws.close(1000, "Server maximum players limit reached.");
       }
@@ -672,6 +678,27 @@ app.ws("/api/shyfog/game", (ws, req) => {
       return ws.close(1002, "Sent packet without joining.");
     }
     if (op == PacketType.MOVEMENT) {
+      if (data.length != 4) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 4`);
+      }
+      try {
+        new Big(data[0]);
+      } catch {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not a valid Big`);
+      }
+      try {
+        new Big(data[1]);
+      } catch {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[1] is not a valid Big`);
+      }
+      try {
+        new Big(data[2]);
+      } catch {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[2] is not a valid Big`);
+      }
+      if (!["none", "left", "right"].includes(data[3])) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[3] is not none/left/right`);
+      }
       var [ x, y, z, direction ] = data;
       var oldPlayerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var oldPlayerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
@@ -716,8 +743,21 @@ app.ws("/api/shyfog/game", (ws, req) => {
         }
         sendPlayerData(client, ws.username);
       });
+      return;
     }
     if (op == PacketType.BLOCK_BREAK) {
+      if (data.length != 3) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 3`);
+      }
+      if (typeof data[0] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not a number`);
+      }
+      if (typeof data[1] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[1] is not a number`);
+      }
+      if (typeof data[2] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[2] is not a number`);
+      }
       var [ x, y, z ] = data;
       var chunkX = Math.floor(x / 16);
       var chunkY = Math.floor(y / 16);
@@ -768,8 +808,21 @@ app.ws("/api/shyfog/game", (ws, req) => {
           world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket, PacketType
         });
       }
+      return;
     }
     if (op == PacketType.USE) {
+      if (data.length != 3) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 3`);
+      }
+      if (typeof data[0] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not a number`);
+      }
+      if (typeof data[1] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[1] is not a number`);
+      }
+      if (typeof data[2] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[2] is not a number`);
+      }
       var [ x, y, z ] = data;
       var chunkX = Math.floor(x / 16);
       var chunkY = Math.floor(y / 16);
@@ -839,8 +892,18 @@ app.ws("/api/shyfog/game", (ws, req) => {
           world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`] = null;
         }
       }
+      return;
     }
     if (op == PacketType.HOTBAR_SWITCH) {
+      if (data.length != 1) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 1`);
+      }
+      if (typeof data[0] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not a number`);
+      }
+      if (data[0] < 0 || data[0] > 8) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not in range 0-8`);
+      }
       world.players[ws.username].selectedHotbarSlot = data[0];
       getPlayers().forEach(client => {
         if (client === ws) {
@@ -848,18 +911,28 @@ app.ws("/api/shyfog/game", (ws, req) => {
         }
         sendPlayerData(client, ws.username);
       });
+      return;
     }
     if (op == PacketType.OPEN_INVENTORY) {
+      if (data.length != 0) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 0`);
+      }
       ws.currentGUI = {
         "id": "shyfog:inventory"
       };
       sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
         "currentGUI": ws.currentGUI
       });
+      return;
     }
     if (op == PacketType.CLOSE_GUI) {
+      if (data.length != 0) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 0`);
+      }
       ws.currentGUI = null;
+      return;
     }
+    ws.close(1002, `Protocol error in Packet[${op}]:\nUnknown packet type`);
   });
   ws.on("close", (code, reason) => {
     clients = clients.filter(client => client !== ws);
