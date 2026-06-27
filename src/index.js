@@ -14,7 +14,7 @@ const PacketType = {
   "HOTBAR_SWITCH": 10,
   "SERVER_TRANSFER": 11,
   "OPEN_INVENTORY": 12,
-  "OPEN_GUI": 13
+  "CLOSE_GUI": 13
 };
 
 function saveWorld() {
@@ -59,7 +59,8 @@ function sendPlayerData(ws, username) {
     }],
     "jumpHeight": config.jumpHeight,
     "maximumRange": config.maximumRange,
-    "skin": clients.find(client => client.username == username).skin
+    "skin": clients.find(client => client.username == username).skin,
+    "currentGUI": clients.find(client => client.username == username).currentGUI
   }));
 }
 
@@ -849,7 +850,15 @@ app.ws("/api/shyfog/game", (ws, req) => {
       });
     }
     if (op == PacketType.OPEN_INVENTORY) {
-      sendPacket(ws, PacketType.OPEN_GUI, "shyfog:inventory");
+      ws.currentGUI = {
+        "id": "shyfog:inventory"
+      };
+      sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
+        "currentGUI": ws.currentGUI
+      });
+    }
+    if (op == PacketType.CLOSE_GUI) {
+      ws.currentGUI = null;
     }
   });
   ws.on("close", (code, reason) => {
