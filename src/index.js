@@ -1,5 +1,5 @@
 const software = "Vanilla";
-const version = require("../package.json").version;
+const version = "v" + require("../package.json").version;
 const PacketType = {
   "JOIN": 0,
   "REQUIRE_AUTH": 1,
