@@ -102,8 +102,7 @@ module.exports = (world, config, chunkX, chunkY, chunkZ) => {
         if (shortGrass > 1 - shortGrassPlainsThreshold) {
           generateBlock(world, chunkX, chunkY, chunkZ, "shyfog:short_grass", worldX, height + 1, chunkZ);
         } else if (tallGrass > 1 - tallGrassPlainsThreshold) {
-          generateBlock(world, chunkX, chunkY, chunkZ, "shyfog:tall_grass_bottom", worldX, height + 1, chunkZ);
-          generateBlock(world, chunkX, chunkY, chunkZ, "shyfog:tall_grass_top", worldX, height + 2, chunkZ);
+          generateBlock(world, chunkX, chunkY, chunkZ, "shyfog:tall_grass", worldX, height + 1, chunkZ);
         } else {
           // Flowers
           var flowerNoise = createNoise2D(alea(world.seed + "_flower"));

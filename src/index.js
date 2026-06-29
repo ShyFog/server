@@ -786,7 +786,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         return;
       }
       var blockType = world.chunks[`${chunkX},${chunkY},${z}`][blockId].block;
-      if (items[blockType].hardness == -1 && world.players[ws.username].gamemode != "creative") {
+      if (items[blockType]({}).hardness == -1 && world.players[ws.username].gamemode != "creative") {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
         sendPlayerData(ws, ws.username);
@@ -804,7 +804,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         }
       });
       if (world.players[ws.username].gamemode == "survival") {
-        items[blockType].drop({
+        items[blockType]({}).drop({
           world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket, PacketType
         });
       }
@@ -860,7 +860,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
         sendPlayerData(ws, ws.username);
         return;
       }
-      if (!items[world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item].placeable) {
+      if (!items[world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`].item]({}).placeable) {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
         sendPlayerData(ws, ws.username);

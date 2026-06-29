@@ -91,7 +91,7 @@ function giveItem(player, item, amount) {
   for (var hotbarIndex = 0; hotbarIndex < 9; hotbarIndex++) {
     if (player.slots[`hotbar.${hotbarIndex}`] && player.slots[`hotbar.${hotbarIndex}`].item == item) {
       // Found, give as much as possible up to stack size
-      var givingAmount = Math.min(items[item].stackSize - player.slots[`hotbar.${hotbarIndex}`].count, remainingAmount);
+      var givingAmount = Math.min(items[item]({}).stackSize - player.slots[`hotbar.${hotbarIndex}`].count, remainingAmount);
       player.slots[`hotbar.${hotbarIndex}`].count += givingAmount;
       remainingAmount -= givingAmount;
       if (remainingAmount < 1) {
@@ -104,7 +104,7 @@ function giveItem(player, item, amount) {
   for (var inventoryIndex = 0; inventoryIndex < 27; inventoryIndex++) {
     if (player.slots[`inventory.${inventoryIndex}`] && player.slots[`inventory.${inventoryIndex}`].item == item) {
       // Found, give as much as possible up to stack size
-      var givingAmount = Math.min(items[item].stackSize - player.slots[`inventory.${inventoryIndex}`].count, remainingAmount);
+      var givingAmount = Math.min(items[item]({}).stackSize - player.slots[`inventory.${inventoryIndex}`].count, remainingAmount);
       player.slots[`inventory.${inventoryIndex}`].count += givingAmount;
       remainingAmount -= givingAmount;
       if (remainingAmount < 1) {
@@ -119,7 +119,7 @@ function giveItem(player, item, amount) {
   for (var hotbarIndex = 0; hotbarIndex < 9; hotbarIndex++) {
     if (!player.slots[`hotbar.${hotbarIndex}`]) {
       // Found an empty slot, give stack size
-      var givingAmount = Math.min(items[item].stackSize, remainingAmount);
+      var givingAmount = Math.min(items[item]({}).stackSize, remainingAmount);
       player.slots[`hotbar.${hotbarIndex}`] = {
         item,
         "count": givingAmount
@@ -135,7 +135,7 @@ function giveItem(player, item, amount) {
   for (var inventoryIndex = 0; inventoryIndex < 27; inventoryIndex++) {
     if (!player.slots[`inventory.${inventoryIndex}`]) {
       // Found an empty slot, give stack size
-      var givingAmount = Math.min(items[item].stackSize, remainingAmount);
+      var givingAmount = Math.min(items[item]({}).stackSize, remainingAmount);
       player.slots[`inventory.${inventoryIndex}`] = {
         item,
         "count": givingAmount
