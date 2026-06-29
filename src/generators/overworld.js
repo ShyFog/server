@@ -22,7 +22,7 @@ module.exports = (world, config, chunkX, chunkY, chunkZ) => {
     return;
   }
   world.chunks[`${chunkX},${chunkY},${chunkZ}`] = [];
-  world.biomes[`${chunkX},${chunkY},${chunkZ}`] = {};
+  world.biomes[`${chunkX},${chunkY},${chunkZ}`] = [];
   if (chunkZ != 0) {
     return;
   }
@@ -121,7 +121,7 @@ module.exports = (world, config, chunkX, chunkY, chunkZ) => {
     if (biomesList[i] == biomeStreakType) {
       biomeStreakLength++;
     } else {
-      world.biomes[`${chunkX},${chunkY},${chunkZ}`][`${biomeStreakStart},${biomeStreakStart + biomeStreakLength - 1}`] = biomeStreakType;
+      world.biomes[`${chunkX},${chunkY},${chunkZ}`].push([biomeStreakStart, biomeStreakStart + biomeStreakLength - 1, biomeStreakType]);
       biomeStreakStart = i;
       biomeStreakType = biomesList[i];
       biomeStreakLength = 1;
