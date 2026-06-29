@@ -700,6 +700,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
         return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[3] is not none/left/right`);
       }
       var [ x, y, z, direction ] = data;
+      if (ws.currentGUI && (x != world.players[ws.username].x || z != world.players[ws.username].z || (new Big(y)).gt(world.players[ws.username].y))) {
+        return sendPlayerData(ws, ws.username);
+      }
       var oldPlayerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var oldPlayerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
       var oldPlayerChunkZ = bigToNumber((new Big(world.players[ws.username].z)));
