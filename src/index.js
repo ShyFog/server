@@ -794,12 +794,16 @@ app.ws("/api/shyfog/game", (ws, req) => {
         sendPlayerData(ws, ws.username);
         return;
       }
-      var blockType = world.chunks[`${chunkX},${chunkY},${z}`][blockId].block;
-      if (items[blockType]({}).hardness == -1 && world.players[ws.username].gamemode != "creative") {
+      var blockType = items[world.chunks[`${chunkX},${chunkY},${z}`][blockId].block]({});
+      if (blockType.hardness == -1 && world.players[ws.username].gamemode != "creative") {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
         sendPlayerData(ws, ws.username);
         return;
+      }
+      var currentItem = world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`];
+      if (currentItem) {
+        currentItem = items[currentItem.item]({});
       }
       world.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
       broadcastPacket(client => {
@@ -812,8 +816,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
           sendPacket(client, PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
         }
       });
-      if (world.players[ws.username].gamemode == "survival") {
-        items[blockType]({}).drop({
+      if (world.players[ws.username].gamemode == "survival" && (blockType.minMiningLevel < 1 || (currentItem && currentItem.tags.includes(blockType.correctTool) && currentItem.miningLevel >= blockType.minMiningLevel))) {
+        blockType.drop({
           world, ws, giveItem, sendPacket, sendPlayerData, broadcastPacket, PacketType
         });
       }
