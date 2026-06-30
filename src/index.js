@@ -60,7 +60,9 @@ function sendPlayerData(ws, username) {
     "jumpHeight": config.jumpHeight,
     "maximumRange": config.maximumRange,
     "skin": clients.find(client => client.username == username).skin,
-    "currentGUI": clients.find(client => client.username == username).currentGUI
+    "currentGUI": clients.find(client => client.username == username).currentGUI,
+    "maxHealth": config.maxHealth,
+    "maxFood": config.maxFood
   }));
 }
 
@@ -432,7 +434,9 @@ if (!fs.existsSync("config.json")) {
     "worldHeight": 319,
     "jumpHeight": 1.2522,
     "reducedDebugInfo": false,
-    "maximumRange": "4.5"
+    "maximumRange": "4.5",
+    "maxHealth": 20,
+    "maxFood": 20
   }, null, 2));
 }
 
@@ -640,7 +644,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
           "direction": "none",
           "gamemode": world.defaultGamemode,
           "selectedHotbarSlot": 0,
-          "slots": {}
+          "slots": {},
+          "health": config.maxHealth,
+          "food": config.maxFood
         };
       }
       getPlayers().forEach(client => {
