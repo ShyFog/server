@@ -14,7 +14,8 @@ const PacketType = {
   "HOTBAR_SWITCH": 10,
   "SERVER_TRANSFER": 11,
   "OPEN_INVENTORY": 12,
-  "CLOSE_GUI": 13
+  "CLOSE_GUI": 13,
+  "GUI_CLICK": 14
 };
 
 function saveWorld() {
@@ -943,7 +944,8 @@ app.ws("/api/shyfog/game", (ws, req) => {
         return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 0`);
       }
       ws.currentGUI = {
-        "id": "shyfog:inventory"
+        "id": "shyfog:inventory",
+        "cursorItem": null
       };
       sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
         "currentGUI": ws.currentGUI
@@ -954,7 +956,89 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (data.length != 0) {
         return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 0`);
       }
+      if (!ws.currentGUI) {
+        return sendPlayerData(ws, ws.username);
+      }
+      if (ws.currentGUI.cursorItem) {
+        giveItem(world.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
+        sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
+          "slots": world.players[ws.username].slots
+        });
+      }
       ws.currentGUI = null;
+      return;
+    }
+    if (op == PacketType.GUI_CLICK) {
+      if (data.length != 3) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 3`);
+      }
+      if (typeof data[0] !== "number") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not a number`);
+      }
+      if (typeof data[1] !== "string") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[1] is not a string`);
+      }
+      if (!["player_slot", "block_slot", "world_slot"].includes(data[1])) {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[1] is not player_slot/block_slot/world_slot`);
+      }
+      if (typeof data[2] !== "string") {
+        return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[2] is not a string`);
+      }
+      if (!ws.currentGUI) {
+        return sendPlayerData(ws, ws.username);
+      }
+      if (data[1] != "player_slot") {
+        return;
+      }
+      if (data[0] == 0) {
+        // Left click
+        if (ws.currentGUI.cursorItem && world.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == world.players[ws.username].slots[data[2]].item) {
+          // Both cursor item and slot item are the same, transfer as much as possible into the slot
+          var transferringAmount = Math.min(ws.currentGUI.cursorItem.count, items[ws.currentGUI.cursorItem.item]({}).stackSize - world.players[ws.username].slots[data[2]].count);
+          ws.currentGUI.cursorItem.count -= transferringAmount;
+          world.players[ws.username].slots[data[2]].count += transferringAmount;
+          if (ws.currentGUI.cursorItem.count < 1) {
+            ws.currentGUI.cursorItem = null;
+          }
+        } else {
+          // Swap cursor item with the slot item
+          var oldCursorItem = ws.currentGUI.cursorItem;
+          ws.currentGUI.cursorItem = world.players[ws.username].slots[data[2]];
+          world.players[ws.username].slots[data[2]] = oldCursorItem;
+        }
+      }
+      if (data[0] == 2) {
+        // Right click
+        if (!ws.currentGUI.cursorItem && world.players[ws.username].slots[data[2]]) {
+          // Take half of the items in the slot
+          var takingAmount = Math.ceil(world.players[ws.username].slots[data[2]].count / 2);
+          ws.currentGUI.cursorItem = {
+            "item": world.players[ws.username].slots[data[2]].item,
+            "count": takingAmount
+          };
+          world.players[ws.username].slots[data[2]].count -= takingAmount;
+          if (world.players[ws.username].slots[data[2]].count < 1) {
+            world.players[ws.username].slots[data[2]] = null;
+          }
+        } else if (ws.currentGUI.cursorItem && world.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == world.players[ws.username].slots[data[2]].item) {
+          // Take just 1 item from the slot
+          if (ws.currentGUI.cursorItem.count < items[ws.currentGUI.cursorItem.item]({}).stackSize) {
+            ws.currentGUI.cursorItem.count++;
+            if (--world.players[ws.username].slots[data[2]].count < 1) {
+              world.players[ws.username].slots[data[2]] = null;
+            }
+          }
+        } else {
+          // Swap cursor item with the slot item
+          var oldCursorItem = ws.currentGUI.cursorItem;
+          ws.currentGUI.cursorItem = world.players[ws.username].slots[data[2]];
+          world.players[ws.username].slots[data[2]] = oldCursorItem;
+        }
+      }
+      sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
+        "slots": world.players[ws.username].slots,
+        "currentGUI": ws.currentGUI
+      });
       return;
     }
     ws.close(1002, `Protocol error in Packet[${op}]:\nUnknown packet type`);
@@ -962,6 +1046,9 @@ app.ws("/api/shyfog/game", (ws, req) => {
   ws.on("close", (code, reason) => {
     clients = clients.filter(client => client !== ws);
     if (ws.username) {
+      if (ws.currentGUI && ws.currentGUI.cursorItem) {
+        giveItem(world.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
+      }
       log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : `: ${reason}`}`);
       log("INFO", `${ws.username} left the game`);
       getPlayers().forEach(client => {
