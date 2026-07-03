@@ -778,13 +778,19 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (y < 0) {
         y += 16;
       }
-      if (world.players[ws.username].gamemode == "adventure" || world.players[ws.username].gamemode == "spectator") {
+      if (!world.chunks[`${chunkX},${chunkY},${z}`]) {
+        return;
+      }
+      if (ws.currentGUI) {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
         sendPlayerData(ws, ws.username);
         return;
       }
-      if (!world.chunks[`${chunkX},${chunkY},${z}`]) {
+      if (world.players[ws.username].gamemode == "adventure" || world.players[ws.username].gamemode == "spectator") {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        sendWorldData(ws);
+        sendPlayerData(ws, ws.username);
         return;
       }
       var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
@@ -848,6 +854,12 @@ app.ws("/api/shyfog/game", (ws, req) => {
         y += 16;
       }
       if (!world.chunks[`${chunkX},${chunkY},${z}`]) {
+        return;
+      }
+      if (ws.currentGUI) {
+        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
+        sendWorldData(ws);
+        sendPlayerData(ws, ws.username);
         return;
       }
       if (!config.allowBuildingInVoid && (chunkY * 16) + y <= config.voidY) {
