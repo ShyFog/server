@@ -1074,8 +1074,23 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (!ws.currentGUI) {
         return sendPlayerData(ws, ws.username);
       }
+      var slotsUpdated = false;
+      for (var slot in world.players[ws.username].slots) {
+        if (slot.startsWith("craft.")) {
+          if (world.players[ws.username].slots[slot]) {
+            if (slot != "craft.result") {
+              giveItem(world.players[ws.username], world.players[ws.username].slots[slot].item, world.players[ws.username].slots[slot].count);
+            }
+            world.players[ws.username].slots[slot] = null;
+            slotsUpdated = true;
+          }
+        }
+      }
       if (ws.currentGUI.cursorItem) {
         giveItem(world.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
+        slotsUpdated = true;
+      }
+      if (slotsUpdated) {
         sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
           "slots": world.players[ws.username].slots
         });
@@ -1185,6 +1200,16 @@ app.ws("/api/shyfog/game", (ws, req) => {
   ws.on("close", (code, reason) => {
     clients = clients.filter(client => client !== ws);
     if (ws.username) {
+      for (var slot in world.players[ws.username].slots) {
+        if (slot.startsWith("craft.")) {
+          if (world.players[ws.username].slots[slot]) {
+            if (slot != "craft.result") {
+              giveItem(world.players[ws.username], world.players[ws.username].slots[slot].item, world.players[ws.username].slots[slot].count);
+            }
+            world.players[ws.username].slots[slot] = null;
+          }
+        }
+      }
       if (ws.currentGUI && ws.currentGUI.cursorItem) {
         giveItem(world.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
       }
