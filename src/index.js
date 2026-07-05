@@ -978,6 +978,14 @@ app.ws("/api/shyfog/game", (ws, req) => {
         sendPlayerData(ws, ws.username);
         return;
       }
+      var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
+      if (blockId > -1) {
+        var blockType = items[world.chunks[`${chunkX},${chunkY},${z}`][blockId].block]({});
+        if (blockType.onUse) {
+          blockType.onUse({ ws, items, guis, recipes, sendPacket, sendPlayerData, sendWorldData, PacketType });
+        }
+        return;
+      }
       if (!config.allowBuildingInVoid && (chunkY * 16) + y <= config.voidY) {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         sendWorldData(ws);
@@ -987,13 +995,6 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (config.worldHeight !== null && (chunkY * 16) + y > config.worldHeight) {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
         return sendWorldData(ws);
-      }
-      var blockId = world.chunks[`${chunkX},${chunkY},${z}`].findIndex(block => block && block.x == x && block.y == y);
-      if (blockId > -1) {
-        sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
-        sendWorldData(ws);
-        sendPlayerData(ws, ws.username);
-        return;
       }
       if (!world.players[ws.username].slots[`hotbar.${world.players[ws.username].selectedHotbarSlot}`]) {
         sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
