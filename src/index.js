@@ -1136,12 +1136,21 @@ app.ws("/api/shyfog/game", (ws, req) => {
           if (world.players[ws.username].slots[data[2]].count < 1) {
             world.players[ws.username].slots[data[2]] = null;
           }
+        } else if (ws.currentGUI.cursorItem && !world.players[ws.username].slots[data[2]]) {
+          // Add just 1 item into the empty slot
+          world.players[ws.username].slots[data[2]] = {
+            "item": ws.currentGUI.cursorItem.item,
+            "count": 1
+          };
+          if (--ws.currentGUI.cursorItem.count < 1) {
+            ws.currentGUI.cursorItem = null;
+          }
         } else if (ws.currentGUI.cursorItem && world.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == world.players[ws.username].slots[data[2]].item) {
-          // Take just 1 item from the slot
-          if (ws.currentGUI.cursorItem.count < items[ws.currentGUI.cursorItem.item]({}).stackSize) {
-            ws.currentGUI.cursorItem.count++;
-            if (--world.players[ws.username].slots[data[2]].count < 1) {
-              world.players[ws.username].slots[data[2]] = null;
+          // Add just 1 item into the slot
+          if (world.players[ws.username].slots[data[2]].count < items[ws.currentGUI.cursorItem.item]({}).stackSize) {
+            world.players[ws.username].slots[data[2]].count++;
+            if (--ws.currentGUI.cursorItem.count < 1) {
+              ws.currentGUI.cursorItem = null;
             }
           }
         } else {
