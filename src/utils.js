@@ -1,11 +1,15 @@
 if (typeof game !== "undefined") {
   var items = game.items;
+  var guis = game.guis;
+  var recipes = game.recipes;
 }
 if (typeof require !== "undefined") {
   var chalk = require("chalk");
   var pako = require("pako");
   var Big = require("big.js");
   var items = require("../data/items.js");
+  var guis = require("../data/guis.js");
+  var recipes = require("../data/recipes.js");
 }
 
 function log(type, text) {
@@ -168,5 +172,5 @@ function getBlock(world, x, y, z) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { pako, Big, items, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, getBlock };
+  module.exports = { pako, Big, items, guis, recipes, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, getBlock };
 }

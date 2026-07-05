@@ -393,8 +393,123 @@ function executeCommand(executorId, executorName, cmd) {
   }
 }
 
+function getCurrentRecipe(ws, width, height) {
+  recipesearch:
+  for (var recipeId in recipes) {
+    var recipe = recipes[recipeId];
+    if (recipe.type == "shyfog:crafting_shapeless") {
+      var ingredients = recipe.ingredients.map(ingredient => {
+        if (typeof ingredient === "string") {
+          return {
+            "item": ingredient
+          };
+        }
+        return ingredient;
+      });
+      for (var index = 0; index < width * height; index++) {
+        if (!world.players[ws.username].slots[`craft.${index}`]) {
+          continue;
+        }
+        if (!ingredients.length) {
+          continue recipesearch;
+        }
+        var slotItem = world.players[ws.username].slots[`craft.${index}`];
+        var ingredientIndex = ingredients.findIndex(ingredient => {
+          if (ingredient.item.startsWith("#")) {
+            return items[slotItem.item]({}).tags.includes(ingredient.item);
+          }
+          return ingredient.item == slotItem.item;
+        });
+        if (ingredientIndex == -1) {
+          continue recipesearch;
+        }
+        ingredients.splice(ingredientIndex, 1);
+      }
+      if (!ingredients.length) {
+        return recipe;
+      }
+    }
+    if (recipe.type == "shyfog:crafting_shaped") {
+      if (recipe.pattern[0].length > width || recipe.pattern.length > height) {
+        continue;
+      }
+      for (var offsetX = 0; offsetX <= width - recipe.pattern[0].length; offsetX++) {
+        offsetsearch:
+        for (var offsetY = 0; offsetY <= height - recipe.pattern.length; offsetY++) {
+          for (var x = 0; x < width; x++) {
+            for (var y = 0; y < height; y++) {
+              var slotItem = world.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
+              var recipeKey = recipe.pattern[y] ? recipe.pattern[y][x] : null;
+              if (recipeKey && recipeKey != " ") {
+                if (!slotItem) {
+                  continue offsetsearch;
+                }
+              } else {
+                if (slotItem) {
+                  continue offsetsearch;
+                }
+                continue;
+              }
+              var recipeItem = recipe.key[recipeKey];
+              if (typeof recipeItem === "string") {
+                recipeItem = {
+                  "item": recipeItem,
+                  "count": 1
+                };
+              }
+              if (recipeItem.item.startsWith("#")) {
+                if (!items[slotItem.item]({}).tags.includes(recipeItem.item)) {
+                  continue offsetsearch;
+                }
+              } else {
+                if (slotItem.item != recipeItem.item) {
+                  continue offsetsearch;
+                }
+              }
+              if (slotItem.count < recipeItem.count) {
+                continue offsetsearch;
+              }
+            }
+          }
+          return recipe;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function updateCraft(ws, width, height) {
+  var recipe = getCurrentRecipe(ws, width, height);
+  if (recipe) {
+    world.players[ws.username].slots["craft.result"] = {
+      "item": recipe.result.id,
+      "count": (recipe.result.count || 1)
+    };
+  } else {
+    world.players[ws.username].slots["craft.result"] = null;
+  }
+  sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
+    "slots": world.players[ws.username].slots
+  });
+  return recipe;
+}
+
+function finishCraft(ws, width, height) {
+  var recipe = getCurrentRecipe(ws, width, height);
+  if (recipe) {
+    for (var index = 0; index < width * height; index++) {
+      world.players[ws.username].slots[`craft.${index}`] = null;
+    }
+    sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
+      "slots": world.players[ws.username].slots
+    });
+  }
+  return recipe;
+}
+
 var serverStartTime = performance.now();
-var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items, getBlock } = require("./utils.js");
+var { pako, Big, log, sendPacket, bigFloor, bigToNumber, giveItem, items, guis, recipes, getBlock } = require("./utils.js");
 log("INFO", "Loading libraries...");
 
 var express = require("express");
@@ -990,6 +1105,7 @@ app.ws("/api/shyfog/game", (ws, req) => {
       if (data[1] != "player_slot") {
         return;
       }
+      var oldItem = Object.assign({}, world.players[ws.username].slots[data[2]]);
       if (data[0] == 0) {
         // Left click
         if (ws.currentGUI.cursorItem && world.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == world.players[ws.username].slots[data[2]].item) {
@@ -1039,6 +1155,20 @@ app.ws("/api/shyfog/game", (ws, req) => {
         "slots": world.players[ws.username].slots,
         "currentGUI": ws.currentGUI
       });
+      var slot = guis[ws.currentGUI.id].content.find(element => element.type == data[1] && element.slot == data[2]);
+      if (slot && slot.onUpdate) {
+        slot.onUpdate({
+          ws,
+          sendPacket,
+          sendWorldData,
+          sendPlayerData,
+          getCurrentRecipe,
+          updateCraft,
+          finishCraft,
+          oldItem,
+          "newItem": world.players[ws.username].slots[data[2]]
+        });
+      }
       return;
     }
     ws.close(1002, `Protocol error in Packet[${op}]:\nUnknown packet type`);
