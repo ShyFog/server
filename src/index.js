@@ -426,7 +426,7 @@ function getCurrentRecipe(ws, width, height) {
         ingredients.splice(ingredientIndex, 1);
       }
       if (!ingredients.length) {
-        return recipe;
+        return { recipe };
       }
     }
     if (recipe.type == "shyfog:crafting_shaped") {
@@ -471,7 +471,7 @@ function getCurrentRecipe(ws, width, height) {
               }
             }
           }
-          return recipe;
+          return { recipe, offsetX, offsetY };
         }
       }
     }
@@ -480,11 +480,11 @@ function getCurrentRecipe(ws, width, height) {
 }
 
 function updateCraft(ws, width, height) {
-  var recipe = getCurrentRecipe(ws, width, height);
-  if (recipe) {
+  var result = getCurrentRecipe(ws, width, height);
+  if (result) {
     world.players[ws.username].slots["craft.result"] = {
-      "item": recipe.result.id,
-      "count": (recipe.result.count || 1)
+      "item": result.recipe.result.id,
+      "count": (result.recipe.result.count || 1)
     };
   } else {
     world.players[ws.username].slots["craft.result"] = null;
@@ -492,20 +492,48 @@ function updateCraft(ws, width, height) {
   sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
     "slots": world.players[ws.username].slots
   });
-  return recipe;
+  return result;
 }
 
 function finishCraft(ws, width, height) {
-  var recipe = getCurrentRecipe(ws, width, height);
-  if (recipe) {
-    for (var index = 0; index < width * height; index++) {
-      world.players[ws.username].slots[`craft.${index}`] = null;
+  var result = getCurrentRecipe(ws, width, height);
+  if (result) {
+    var { recipe, offsetX, offsetY } = result;
+    if (recipe.type == "shyfog:crafting_shapeless") {
+      for (var index = 0; index < width * height; index++) {
+        if (world.players[ws.username].slots[`craft.${index}`] && --world.players[ws.username].slots[`craft.${index}`].count < 1) {
+          world.players[ws.username].slots[`craft.${index}`] = null;
+        }
+      }
+    }
+    if (recipe.type == "shyfog:crafting_shaped") {
+      for (var x = 0; x < width; x++) {
+        for (var y = 0; y < height; y++) {
+          var slotItem = world.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
+          var recipeKey = recipe.pattern[y] ? recipe.pattern[y][x] : null;
+          if (!recipeKey) {
+            continue;
+          }
+          var recipeItem = recipe.key[recipeKey];
+          if (typeof recipeItem === "string") {
+            recipeItem = {
+              "item": recipeItem,
+              "count": 1
+            };
+          }
+          slotItem.count -= recipeItem.count;
+          if (slotItem.count < 1) {
+            world.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`] = null;
+          }
+        }
+      }
     }
     sendPacket(ws, PacketType.PLAYER_METADATA, ws.username, {
       "slots": world.players[ws.username].slots
     });
   }
-  return recipe;
+  updateCraft(ws, width, height);
+  return result;
 }
 
 var serverStartTime = performance.now();
