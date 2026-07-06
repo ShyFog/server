@@ -511,7 +511,7 @@ function finishCraft(ws, width, height) {
         for (var y = 0; y < height; y++) {
           var slotItem = world.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
           var recipeKey = recipe.pattern[y] ? recipe.pattern[y][x] : null;
-          if (!recipeKey) {
+          if (!recipeKey || recipeKey == " ") {
             continue;
           }
           var recipeItem = recipe.key[recipeKey];
