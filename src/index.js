@@ -15,7 +15,8 @@ const PacketType = {
   "SERVER_TRANSFER": 11,
   "OPEN_INVENTORY": 12,
   "CLOSE_GUI": 13,
-  "GUI_CLICK": 14
+  "GUI_CLICK": 14,
+  "CHAT_MESSAGE": 15
 };
 
 function saveWorld() {
@@ -262,6 +263,11 @@ function executeCommand(executorId, executorName, cmd) {
       return;
     case "save-all":
       return saveWorld();
+    case "say":
+      var content = `[${executorName}] ${args.join(" ")}`;
+      log("INFO", content);
+      broadcastPacket(client => sendPacket(client, PacketType.CHAT_MESSAGE, { content }));
+      return;
     case "seed":
       return log("INFO", `Seed: [${world.seed}]`);
     case "setblock":
@@ -793,13 +799,17 @@ app.ws("/api/shyfog/game", (ws, req) => {
           "food": config.maxFood
         };
       }
-      getPlayers().forEach(client => {
+      broadcastPacket(client => {
         sendPlayerData(ws, client.username);
         sendPlayerData(client, ws.username);
       });
       log("INFO", `ID of player ${ws.username} is ${ws.accountId}`);
       log("INFO", `${ws.username}[/${req.ip}] logged in at (${world.players[ws.username].x}, ${world.players[ws.username].y}, ${world.players[ws.username].z})`);
       log("INFO", `${ws.username} joined the game`);
+      broadcastPacket(client => sendPacket(client, PacketType.CHAT_MESSAGE, {
+        "content": `${ws.username} joined the game`,
+        "color": "#ffff55"
+      }));
       var playerChunkX = bigToNumber(bigFloor((new Big(world.players[ws.username].x)).div(16)));
       var playerChunkY = bigToNumber(bigFloor((new Big(world.players[ws.username].y)).div(16)));
       var playerChunkZ = bigToNumber(new Big(world.players[ws.username].z));
@@ -1243,7 +1253,10 @@ app.ws("/api/shyfog/game", (ws, req) => {
         giveItem(world.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
       }
       log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : `: ${reason}`}`);
-      log("INFO", `${ws.username} left the game`);
+      broadcastPacket(client => sendPacket(client, PacketType.CHAT_MESSAGE, {
+        "content": `${ws.username} left the game`,
+        "color": "#ffff55"
+      }));
       getPlayers().forEach(client => {
         sendPacket(client, PacketType.PLAYER_DISCONNECTED, ws.username);
       });
