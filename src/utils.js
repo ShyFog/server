@@ -60,7 +60,11 @@ ShyFog.Server.sendPlayerData = (ws, username) => {
     "skin": ShyFog.Server.clients.find(client => client.username == username).skin,
     "currentGUI": ShyFog.Server.clients.find(client => client.username == username).currentGUI,
     "maxHealth": ShyFog.Server.config.maxHealth,
-    "maxFood": ShyFog.Server.config.maxFood
+    "maxFood": ShyFog.Server.config.maxFood,
+    "walkSpeed": 5,
+    "shiftSpeed": 2,
+    "sprintSpeed": 7,
+    "verticalFlySpeed": 3
   }));
 };
 
