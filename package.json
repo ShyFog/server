@@ -2,9 +2,10 @@
   "name": "server",
   "version": "0.0.5",
   "description": "Official vanilla server software for ShyFog game.",
-  "main": "src/index.js",
+  "main": "shyfog-server.js",
   "scripts": {
-    "start": "node src/index.js"
+    "build": "node build.js",
+    "start": "node shyfog-server.js"
   },
   "keywords": [],
   "author": "topcatto",
@@ -13,10 +14,13 @@
   "dependencies": {
     "alea": "^1.0.1",
     "big.js": "^7.0.1",
-    "chalk": "^4.1.2",
     "express": "^4.22.2",
     "express-ws": "^5.0.2",
     "pako": "^2.1.0",
     "simplex-noise": "^4.0.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.7.2",
+    "babel-preset-minify": "^0.5.2"
   }
 }

@@ -1,59 +1,73 @@
-if (typeof game !== "undefined") {
-  var items = game.items;
-  var guis = game.guis;
-  var recipes = game.recipes;
-}
-if (typeof require !== "undefined") {
-  var chalk = require("chalk");
-  var pako = require("pako");
-  var Big = require("big.js");
-  var items = require("../data/items.js");
-  var guis = require("../data/guis.js");
-  var recipes = require("../data/recipes.js");
-}
-
-function log(type, text) {
-  var date = new Date;
-  var colors = {
-    "INFO": "white",
-    "WARN": "yellow",
-    "ERROR": "red",
-    "FATAL": "red"
+ShyFog.Server.saveWorld = () => {
+  ShyFog.Server.log("INFO", "Saving world");
+  var world = {
+    "chunks": ShyFog.Server.chunks,
+    "biomes": ShyFog.Server.biomes,
+    "players": ShyFog.Server.players,
+    "playerIds": ShyFog.Server.playerIds,
+    "bannedNames": ShyFog.Server.bannedNames,
+    "bannedIds": ShyFog.Server.bannedIds,
+    "bannedIps": ShyFog.Server.bannedIps,
+    "defaultGamemode": ShyFog.Server.defaultGamemode,
+    "worldVersion": ShyFog.Server.worldVersion,
+    "seed": ShyFog.Server.seed
   };
-  var hours = date.getHours().toString();
-  var minutes = date.getMinutes().toString();
-  var seconds = date.getSeconds().toString();
-  if (hours.length < 2) {
-    hours = `0${hours}`;
-  }
-  if (minutes.length < 2) {
-    minutes = `0${minutes}`;
-  }
-  if (seconds.length < 2) {
-    seconds = `0${seconds}`;
-  }
-  console.log(chalk[colors[type]](`[${hours}:${minutes}:${seconds} ${type}]: ${text}`));
-}
-
-function sendPacket(ws, ...packet) {
-  var uncompressedPacket = JSON.stringify(packet).slice(1, -1);
-  var compressedPacket = pako.deflate(uncompressedPacket);
-  if (compressedPacket.length < uncompressedPacket.length) {
-    ws.send(compressedPacket);
+  if (ShyFog.Server.config.compressWorld) {
+    fs.writeFileSync(ShyFog.Server.config.world, pako.deflate(JSON.stringify(world)));
   } else {
-    ws.send(uncompressedPacket);
+    fs.writeFileSync(ShyFog.Server.config.world, JSON.stringify(world));
   }
-}
+};
 
-function bigFloor(x) {
-  return x.lt(0) ? x.round(0, Big.roundDown).minus(x.eq(x.round(0, Big.roundDown)) ? 0 : 1) : x.round(0, Big.roundDown);
-}
+ShyFog.Server.sendChunks = (ws, chunks) => {
+  var chunksToSend = {};
+  var biomesToSend = {};
+  for (var chunk of chunks) {
+    chunksToSend[chunk] = ShyFog.Server.chunks[chunk];
+    biomesToSend[chunk] = ShyFog.Server.biomes[chunk];
+  }
+  ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.CHUNKS, chunksToSend, biomesToSend);
+};
 
-function bigToNumber(x) {
-  return parseFloat(x.toString());
-}
+ShyFog.Server.sendWorldData = ws => {
+  var { skyColor, void: void_, voidY, allowBuildingInVoid, worldHeight, reducedDebugInfo } = ShyFog.Server.config;
+  ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.WORLD_METADATA, {
+    skyColor,
+    "void": void_,
+    voidY,
+    allowBuildingInVoid,
+    worldHeight,
+    reducedDebugInfo
+  });
+};
 
-function generateBlock(world, chunkX, chunkY, chunkZ, block, x, y, z) {
+ShyFog.Server.sendPlayerData = (ws, username) => {
+  ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, username, Object.assign({}, ShyFog.Server.players[username], {
+    "hitboxes": [{
+      "x": 0.125,
+      "y": 0.9125,
+      "width": 0.75,
+      "height": 1.9125,
+      "rotation": 0
+    }],
+    "jumpHeight": ShyFog.Server.config.jumpHeight,
+    "maximumRange": ShyFog.Server.config.maximumRange,
+    "skin": ShyFog.Server.clients.find(client => client.username == username).skin,
+    "currentGUI": ShyFog.Server.clients.find(client => client.username == username).currentGUI,
+    "maxHealth": ShyFog.Server.config.maxHealth,
+    "maxFood": ShyFog.Server.config.maxFood
+  }));
+};
+
+ShyFog.Server.getPlayers = () => {
+  return ShyFog.Server.clients.filter(client => client.username);
+};
+
+ShyFog.Server.broadcastPacket = send => {
+  ShyFog.Server.getPlayers().forEach(client => send(client));
+};
+
+ShyFog.Server.generateBlock = (chunkX, chunkY, chunkZ, block, x, y, z) => {
   var xChunk = Math.floor(x / 16);
   var yChunk = Math.floor(y / 16);
   if (chunkX == xChunk && chunkY == yChunk && chunkZ == z) {
@@ -65,30 +79,15 @@ function generateBlock(world, chunkX, chunkY, chunkZ, block, x, y, z) {
     if (localY < 0) {
       localY += 16;
     }
-    world.chunks[`${chunkX},${chunkY},${chunkZ}`].push({
+    ShyFog.Server.chunks[`${chunkX},${chunkY},${chunkZ}`].push({
       block,
       "x": localX,
       "y": localY
     });
   }
-}
+};
 
-function pickWeightedRandom(noiseValue, options) {
-  var entries = Object.entries(options);
-  var total = entries.reduce((sum, [, w]) => sum + w, 0);
-  var t = (noiseValue + 1) / 2;
-  t = Math.max(0, Math.min(0.999999, t));
-  var acc = 0;
-  for (var [name, weight] of entries) {
-    acc += weight / total;
-    if (t < acc) {
-      return name;
-    }
-  }
-  return entries[entries.length - 1][0];
-}
-
-function giveItem(player, item, amount) {
+ShyFog.Server.giveItem = (player, item, amount) => {
   var remainingAmount = amount;
 
   // First, try to find this item in hotbar
@@ -153,9 +152,9 @@ function giveItem(player, item, amount) {
 
   // If we're still here, the inventory is too full to give items
   return false;
-}
+};
 
-function getBlock(world, x, y, z) {
+ShyFog.Server.getBlock = (x, y, z) => {
   var chunkX = Math.floor(x / 16);
   var chunkY = Math.floor(y / 16);
   var chunkZ = z;
@@ -167,10 +166,6 @@ function getBlock(world, x, y, z) {
   if (y < 0) {
     y += 16;
   }
-  var chunk = world.chunks[`${chunkX},${chunkY},${chunkZ}`];
+  var chunk = ShyFog.Server.chunks[`${chunkX},${chunkY},${chunkZ}`];
   return chunk.find(block => block && block.x == x && block.y == y);
-}
-
-if (typeof module !== "undefined") {
-  module.exports = { pako, Big, items, guis, recipes, log, sendPacket, bigFloor, bigToNumber, generateBlock, pickWeightedRandom, giveItem, getBlock };
-}
+};
