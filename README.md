@@ -1,4 +1,4 @@
-# Quick local installation guide
+# Quick local installation/build guide
 
 ```bash
 # Download v0.0.5 server to shyfog-server folder
