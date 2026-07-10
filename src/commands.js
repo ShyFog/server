@@ -130,7 +130,7 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (amount < 1) {
         return ShyFog.Server.log("INFO", `Integer must not be less than 1: found ${amount}`);
       }
-      giveItem(ShyFog.Server.players[player], item, amount);
+      ShyFog.Server.giveItem(ShyFog.Server.players[player], item, amount);
       ShyFog.Server.log("INFO", `Gave ${amount} [${item}] to ${player}`);
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (client) {
