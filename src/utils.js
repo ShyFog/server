@@ -1,6 +1,8 @@
 var fs = null;
 if (typeof require !== "undefined") {
   fs = require("fs");
+} else if (typeof ZenFS !== "undefined") {
+  fs = ZenFS.fs;
 }
 
 ShyFog.Server.saveWorld = () => {

@@ -1,6 +1,14 @@
 if (typeof require !== "undefined") {
   var { createNoise2D } = require("simplex-noise");
   var Alea = require("alea");
+} else {
+  // Needed in browser environment because of Babel variable renaming
+  if (typeof globalThis.createNoise2D !== "undefined") {
+    createNoise2D = globalThis.createNoise2D;
+  }
+  if (typeof globalThis.Alea !== "undefined") {
+    Alea = globalThis.Alea;
+  }
 }
 
 const scale = (1 / 16);
