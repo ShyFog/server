@@ -1,4 +1,12 @@
 globalThis.ShyFog = (globalThis.ShyFog || {});
+ShyFog.registerClientMod = (ShyFog.registerClientMod || (() => {}));
+var _registeringMod = null;
+ShyFog.registerServerMod = metadata => {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata) || !metadata.modid || !metadata.hooks) {
+    throw "Invalid metadata.";
+  }
+  _registeringMod = metadata;
+};
 ShyFog.Server = {};
 ShyFog.Server.software = "Vanilla";
 ShyFog.Server.version = "%SHYFOG_VERSION%";
@@ -21,6 +29,7 @@ ShyFog.Server.PacketType = {
   "CHAT_MESSAGE": 15
 };
 ShyFog.Server.generators = {};
+ShyFog.Server.mods = [];
 ShyFog.Server.serverStartTime = performance.now();
 
 ShyFog.Server.log = (type, text) => {
@@ -122,6 +131,50 @@ if (!fs.existsSync("config.json")) {
 
 ShyFog.Server.log("INFO", "Loading config");
 ShyFog.Server.config = JSON.parse(fs.readFileSync("config.json").toString("utf-8"));
+
+if (ShyFog.Server.config.mods) {
+  // Load mods
+  if (!fs.existsSync("mods")) {
+    fs.mkdirSync("mods");
+  }
+  ShyFog.Server.log("INFO", `Searching ${fs.realpathSync("mods")} for mods`);
+  var mods = fs.readdirSync("mods");
+  ShyFog.Server.log("INFO", `ShyFog has identified ${mods.length} mods to load`);
+  for (var mod of mods) {
+    if (mod.startsWith(".")) {
+      continue;
+    }
+    require(`./mods/${mod}`);
+    var modMetadata = _registeringMod;
+    _registeringMod = null;
+    if (!modMetadata) {
+      ShyFog.Server.log("WARN", `Found a non-mod file ${mod} in your mods directory. It will now be injected. This could severe stability issues, it should be removed if possible.`);
+      continue;
+    }
+    ShyFog.Server.mods.push(modMetadata);
+    if (typeof modMetadata.hooks.stage1 === "function") {
+      try {
+        modMetadata.hooks.stage1();
+      } catch(err) {
+        console.error(err);
+        ShyFog.Server.log("FATAL", `Mod "${modMetadata.name}" (${mod}) just crashed!`);
+        process.exit(1);
+      }
+    }
+  }
+}
+
+for (var mod of ShyFog.Server.mods) {
+  if (typeof mod.hooks.stage2 === "function") {
+    try {
+      mod.hooks.stage2();
+    } catch(err) {
+      console.error(err);
+      ShyFog.Server.log("FATAL", `Mod "${mod.name}" (${mod.modid}) just crashed!`);
+      process.exit(1);
+    }
+  }
+}
 
 ShyFog.Server.app = express ? express() : null;
 ShyFog.Server.sslServer = null;
@@ -288,6 +341,18 @@ ShyFog.Server.onListen = async () => {
   }
   ShyFog.Server.log("INFO", `Done (${startTime.toFixed(3)}${startTimeUnit})!`);
 
+  for (var mod of ShyFog.Server.mods) {
+    if (typeof mod.hooks.stage4 === "function") {
+      try {
+        mod.hooks.stage4();
+      } catch(err) {
+        console.error(err);
+        ShyFog.Server.log("FATAL", `Mod "${mod.name}" (${mod.modid}) just crashed!`);
+        process.exit(1);
+      }
+    }
+  }
+
   // Console commands
   while(ShyFog.Server.consoleInput) {
     var command = await new Promise(res => {
@@ -297,6 +362,18 @@ ShyFog.Server.onListen = async () => {
       command = command.slice(1);
     }
     ShyFog.Server.executeCommand(-1, "Server", command);
+  }
+}
+
+for (var mod of ShyFog.Server.mods) {
+  if (typeof mod.hooks.stage3 === "function") {
+    try {
+      mod.hooks.stage3();
+    } catch(err) {
+      console.error(err);
+      ShyFog.Server.log("FATAL", `Mod "${mod.name}" (${mod.modid}) just crashed!`);
+      process.exit(1);
+    }
   }
 }
 
