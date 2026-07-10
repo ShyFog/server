@@ -28,7 +28,8 @@ ShyFog.Server.serverStartTime = performance.now();
 ShyFog.Server.hooks = {
   "afterMods": [],
   "preListen": [],
-  "onListen": []
+  "onListen": [],
+  "postListen": []
 };
 
 ShyFog.Server.log = (type, text) => {
@@ -218,50 +219,52 @@ if (fs.existsSync(ShyFog.Server.config.world)) {
     ShyFog.Server.chunks[chunk] = ShyFog.Server.chunks[chunk].filter(block => block);
   }
 } else {
-  ShyFog.Server.log("INFO", `Preparing level "${ShyFog.Server.config.world}"`);
-  ShyFog.Server.seed = ShyFog.Server.config.seed;
-  if (ShyFog.Server.seed === "") {
-    ShyFog.Server.seed = Math.floor(Math.random() *Number.MAX_SAFE_INTEGER).toString();
-  }
-  ShyFog.Server.log("INFO", `Using seed "${ShyFog.Server.seed}"`);
-  ShyFog.Server.chunks = {};
-  ShyFog.Server.biomes = {};
-  ShyFog.Server.players = {};
-  ShyFog.Server.playerIds = {};
-  ShyFog.Server.bannedNames = {};
-  ShyFog.Server.bannedIds = {};
-  ShyFog.Server.bannedIps = {};
-  ShyFog.Server.defaultGamemode = ShyFog.Server.config.defaultGamemode;
-  ShyFog.Server.worldVersion = ShyFog.Server.version;
-  var generationStartTime = performance.now();
-  for (var x = -ShyFog.Server.config.generationDistance; x <= ShyFog.Server.config.generationDistance; x++) {
-    for (var y = 4 - ShyFog.Server.config.generationDistance; y <= 4 + ShyFog.Server.config.generationDistance; y++) {
-      for (var z = -ShyFog.Server.config.generationDistance; z <= ShyFog.Server.config.generationDistance; z++) {
-        ShyFog.Server.generators.overworld(world, config, x, y, z);
+  ShyFog.Server.hooks.onListen.push(() => {
+    ShyFog.Server.log("INFO", `Preparing level "${ShyFog.Server.config.world}"`);
+    ShyFog.Server.seed = ShyFog.Server.config.seed;
+    if (ShyFog.Server.seed === "") {
+      ShyFog.Server.seed = Math.floor(Math.random() *Number.MAX_SAFE_INTEGER).toString();
+    }
+    ShyFog.Server.log("INFO", `Using seed "${ShyFog.Server.seed}"`);
+    ShyFog.Server.chunks = {};
+    ShyFog.Server.biomes = {};
+    ShyFog.Server.players = {};
+    ShyFog.Server.playerIds = {};
+    ShyFog.Server.bannedNames = [];
+    ShyFog.Server.bannedIds = [];
+    ShyFog.Server.bannedIps = [];
+    ShyFog.Server.defaultGamemode = ShyFog.Server.config.defaultGamemode;
+    ShyFog.Server.worldVersion = ShyFog.Server.version;
+    var generationStartTime = performance.now();
+    for (var x = -ShyFog.Server.config.generationDistance; x <= ShyFog.Server.config.generationDistance; x++) {
+      for (var y = 4 - ShyFog.Server.config.generationDistance; y <= 4 + ShyFog.Server.config.generationDistance; y++) {
+        for (var z = -ShyFog.Server.config.generationDistance; z <= ShyFog.Server.config.generationDistance; z++) {
+          ShyFog.Server.generators.overworld(x, y, z);
+        }
       }
     }
-  }
-  ShyFog.Server.log("INFO", "Selecting global world spawn...");
-  const transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass_top", "shyfog:tall_grass_bottom", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
-  var safeChunks = [];
-  for (var chunk in ShyFog.Server.chunks) {
-    var [ chunkX, chunkY, chunkZ ] = chunk.split(",").map(part => parseInt(part));
-    var spawnBlocks = ShyFog.Server.chunks[chunk].filter(block => block && !transparentBlocks.includes(block.block) && (!ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
-    if (spawnBlocks.length) {
-      safeChunks.push(chunk);
+    ShyFog.Server.log("INFO", "Selecting global world spawn...");
+    const transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass_top", "shyfog:tall_grass_bottom", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
+    var safeChunks = [];
+    for (var chunk in ShyFog.Server.chunks) {
+      var [ chunkX, chunkY, chunkZ ] = chunk.split(",").map(part => parseInt(part));
+      var spawnBlocks = ShyFog.Server.chunks[chunk].filter(block => block && !transparentBlocks.includes(block.block) && (!ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
+      if (spawnBlocks.length) {
+        safeChunks.push(chunk);
+      }
     }
-  }
-  var spawnChunk = safeChunks[Math.floor(Math.random() *safeChunks.length)];
-  var [ chunkX, chunkY, chunkZ ] = spawnChunk.split(",").map(part => parseInt(part));
-  var spawnBlocks = ShyFog.Server.chunks[spawnChunk].filter(block => block && !transparentBlocks.includes(block.block) && (!ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
-  var spawnBlock = spawnBlocks[Math.floor(Math.random() *spawnBlocks.length)];
-  ShyFog.Server.spawn = {
-    "x": ((chunkX * 16) + spawnBlock.x).toString(),
-    "y": ((chunkY * 16) + spawnBlock.y + 1).toString(),
-    "z": chunkZ.toString()
-  };
-  ShyFog.Server.log("INFO", `Time elapsed: ${Math.round(performance.now() - generationStartTime)} ms`);
-  ShyFog.Server.saveWorld();
+    var spawnChunk = safeChunks[Math.floor(Math.random() *safeChunks.length)];
+    var [ chunkX, chunkY, chunkZ ] = spawnChunk.split(",").map(part => parseInt(part));
+    var spawnBlocks = ShyFog.Server.chunks[spawnChunk].filter(block => block && !transparentBlocks.includes(block.block) && (!ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ) || transparentBlocks.includes(ShyFog.Server.getBlock((chunkX * 16) + block.x, (chunkY * 16) + block.y + 1, chunkZ).block)));
+    var spawnBlock = spawnBlocks[Math.floor(Math.random() *spawnBlocks.length)];
+    ShyFog.Server.spawn = {
+      "x": ((chunkX * 16) + spawnBlock.x).toString(),
+      "y": ((chunkY * 16) + spawnBlock.y + 1).toString(),
+      "z": chunkZ.toString()
+    };
+    ShyFog.Server.log("INFO", `Time elapsed: ${Math.round(performance.now() - generationStartTime)} ms`);
+    ShyFog.Server.saveWorld();
+  });
 }
 
 if (ShyFog.Server.app) {
@@ -326,6 +329,8 @@ if (ShyFog.Server.app) {
 ShyFog.Server.log("INFO", `Starting ShyFog server on *:${ShyFog.Server.config.port}`);
 
 ShyFog.Server.onListen = async () => {
+  ShyFog.Server.hooks.onListen.forEach(hook => hook());
+
   setInterval(ShyFog.Server.saveWorld, ShyFog.Server.config.autosaveTime *1000);
   ShyFog.Server.log("INFO", `Scheduled autosave every ${ShyFog.Server.config.autosaveTime}s`);
   var startTime = (performance.now() - ShyFog.Server.serverStartTime);
@@ -336,7 +341,7 @@ ShyFog.Server.onListen = async () => {
   }
   ShyFog.Server.log("INFO", `Done (${startTime.toFixed(3)}${startTimeUnit})!`);
 
-  ShyFog.Server.hooks.onListen.forEach(hook => hook());
+  ShyFog.Server.hooks.postListen.forEach(hook => hook());
 
   // Console commands
   while(ShyFog.Server.consoleInput) {
