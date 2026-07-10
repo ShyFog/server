@@ -53,7 +53,7 @@ ShyFog.Server.generators.overworld = (chunkX, chunkY, chunkZ) => {
     for (var y = height - i; y > 0; y--) {
       ShyFog.Server.generateBlock(chunkX, chunkY, chunkZ, "shyfog:stone", worldX, y, chunkZ);
     }
-    for (var y2 = y; y2 > config.voidY + 1; y2--) {
+    for (var y2 = y; y2 > ShyFog.Server.config.voidY + 1; y2--) {
       ShyFog.Server.generateBlock(chunkX, chunkY, chunkZ, "shyfog:deepslate", worldX, y2, chunkZ);
     }
     ShyFog.Server.generateBlock(chunkX, chunkY, chunkZ, "shyfog:bedrock", worldX, y2, chunkZ);
