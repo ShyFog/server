@@ -95,8 +95,8 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
         "gamemode": ShyFog.Server.defaultGamemode,
         "selectedHotbarSlot": 0,
         "slots": {},
-        "health": ShyFog.Server.maxHealth,
-        "food": ShyFog.Server.maxFood
+        "health": ShyFog.Server.config.maxHealth,
+        "food": ShyFog.Server.config.maxFood
       };
     }
     ShyFog.Server.broadcastPacket(client => {
