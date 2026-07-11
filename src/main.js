@@ -153,6 +153,7 @@ if (ShyFog.Server.config.mods) {
       ShyFog.Server.log("WARN", `Found a non-mod file ${modFile} in your mods directory. It will now be injected. This could severe stability issues, it should be removed if possible.`);
       try {
         eval(data);
+        continue;
       } catch(err) {
         console.error(err);
         ShyFog.Server.log("FATAL", `Mod "${modFile}" just crashed!`);
