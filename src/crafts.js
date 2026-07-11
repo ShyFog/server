@@ -1,6 +1,6 @@
 ShyFog.Server.getCurrentRecipe = (ws, width, height) => {
   recipesearch:
-  for (var recipeId in recipes) {
+  for (var recipeId in ShyFog.Server.recipes) {
     var recipe = ShyFog.Server.recipes[recipeId];
     if (recipe.type == "shyfog:crafting_shapeless") {
       var ingredients = recipe.ingredients.map(ingredient => {
