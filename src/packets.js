@@ -1,23 +1,31 @@
-ShyFog.Server.handlePacket = async (ws, req, message) => {
-  if (typeof message === "string" && message.startsWith("PING")) {
-    return ws.send(`PONG${message.slice(4)}`);
-  }
-  var msg = null;
+ShyFog.Server.decodePacket = data => {
+  var packet = null;
   try {
-    msg = JSON.parse("[" + pako.inflate(message, {
+    packet = JSON.parse("[" + pako.inflate(data, {
       "to": "string"
     }) + "]");
   } catch(_) {
     try {
-      msg = JSON.parse(`[${message}]`);
+      packet = JSON.parse(`[${data}]`);
     } catch(_) {
-      return ws.close(1002, "Protocol Error: Received invalid packet.");
+      return null;
     }
   }
-  if (!Array.isArray(msg) || !msg.length || typeof msg[0] !== "number") {
-    return ws.close(1002, "Protocol Error: Received invalid packet type.");
+  if (!Array.isArray(packet) || !packet.length || typeof packet[0] !== "number") {
+    return null;
   }
-  var [op, ...data] = msg;
+  return packet;
+};
+
+ShyFog.Server.handlePacket = async (ws, req, message) => {
+  if (typeof message === "string" && message.startsWith("PING")) {
+    return ws.send(`PONG${message.slice(4)}`);
+  }
+  var packet = ShyFog.Server.decodePacket(message);
+  if (!packet) {
+    return ws.close(1002, "Protocol Error: Received invalid packet.");
+  }
+  var [op, ...data] = packet;
   if (op == ShyFog.Server.PacketType.JOIN) {
     if (data.length != 1) {
       return ws.close(1002, `Protocol error in Packet[${op}]:\nData length expected 1`);
@@ -526,5 +534,9 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
     }
     return;
   }
-  ws.close(1002, `Protocol error in Packet[${op}]:\nUnknown packet type`);
+  ShyFog.Server.handleUnknownPacket(ws, packet);
+};
+
+ShyFog.Server.handleUnknownPacket = (ws, packet) => {
+  ws.close(1002, `Protocol error in Packet[${packet[0]}]:\nUnknown packet type`);
 };
