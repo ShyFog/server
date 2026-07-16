@@ -52,6 +52,25 @@ ShyFog.Server.updateRegions = () => {
       }
     }
   }
+  var regionsToSave = {};
+  for (var chunk of chunksToUnload) {
+    var region = ShyFog.Server.getRegionByChunk(chunk).join(",");
+    if (!regionsToSave[region]) {
+      regionsToSave[region] = {
+        "chunks": {},
+        "biomes": {}
+      };
+    }
+    regionsToSave[region].chunks[chunk] = ShyFog.Server.chunks[chunk];
+    regionsToSave[region].biomes[chunk] = ShyFog.Server.biomes[chunk];
+  }
+  for (var region in regionsToSave) {
+    if (ShyFog.Server.config.compressWorld) {
+      fs.writeFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`, pako.deflate(JSON.stringify(regionsToSave[region])));
+    } else {
+      fs.writeFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`, JSON.stringify(regionsToSave[region]));
+    }
+  }
   for (var chunk of chunksToUnload) {
     delete ShyFog.Server.chunks[chunk];
     delete ShyFog.Server.biomes[chunk];
