@@ -197,7 +197,7 @@ if (fs.existsSync(ShyFog.Server.config.world)) {
     var world = JSON.parse(fs.readFileSync(ShyFog.Server.config.world + "/level.json"));
     ShyFog.Server.chunks = {};
     ShyFog.Server.biomes = {};
-    ShyFog.Server.players = {};
+    ShyFog.Server.players = new Map;
     ShyFog.Server.playerIds = world.playerIds;
     ShyFog.Server.bannedNames = world.bannedNames;
     ShyFog.Server.bannedIds = world.bannedIds;
@@ -220,7 +220,7 @@ if (fs.existsSync(ShyFog.Server.config.world)) {
     ShyFog.Server.log("INFO", `Using seed "${ShyFog.Server.seed}"`);
     ShyFog.Server.chunks = {};
     ShyFog.Server.biomes = {};
-    ShyFog.Server.players = {};
+    ShyFog.Server.players = new Map;
     ShyFog.Server.playerIds = {};
     ShyFog.Server.bannedNames = [];
     ShyFog.Server.bannedIds = [];
@@ -291,26 +291,26 @@ if (ShyFog.Server.app) {
       ws.on("close", (code, reason) => {
         ShyFog.Server.clients = ShyFog.Server.clients.filter(client => client !== ws);
         if (ws.username) {
-          for (var slot in ShyFog.Server.players[ws.username].slots) {
+          for (var slot in ShyFog.Server.players.get(ws.username).slots) {
             if (slot.startsWith("craft.")) {
-              if (ShyFog.Server.players[ws.username].slots[slot]) {
+              if (ShyFog.Server.players.get(ws.username).slots[slot]) {
                 if (slot != "craft.result") {
-                  ShyFog.Server.giveItem(ShyFog.Server.players[ws.username], ShyFog.Server.players[ws.username].slots[slot].item, ShyFog.Server.players[ws.username].slots[slot].count);
+                  ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ShyFog.Server.players.get(ws.username).slots[slot].item, ShyFog.Server.players[ws.username].slots[slot].count);
                 }
-                ShyFog.Server.players[ws.username].slots[slot] = null;
+                ShyFog.Server.players.get(ws.username).slots[slot] = null;
               }
             }
           }
           if (ws.currentGUI && ws.currentGUI.cursorItem) {
-            ShyFog.Server.giveItem(ShyFog.Server.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
+            ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
           }
           ShyFog.Server.log("INFO", `${ws.username} lost connection${(code == 1002) ? " due to protocol error" : `: ${reason}`}`);
           ShyFog.Server.broadcastPacket(client => ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.CHAT_MESSAGE, {
             "content": `${ws.username} left the game`,
             "color": "#ffff55"
           }));
-          fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players[ws.username]));
-          delete ShyFog.Server.players[ws.username];
+          fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players.get(ws.username)));
+          ShyFog.Server.players.delete(ws.username);
           ShyFog.Server.broadcastPacket(client => {
             ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.PLAYER_DISCONNECTED, ws.username);
           });

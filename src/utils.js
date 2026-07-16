@@ -14,10 +14,10 @@ ShyFog.Server.updateRegions = () => {
   var regionsToLoad = new Set;
   var chunksToUnload = new Set(Object.keys(ShyFog.Server.chunks));
   var distance = Math.max(ShyFog.Server.config.viewDistance, ShyFog.Server.config.generationDistance);
-  for (var player in ShyFog.Server.players) {
-    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[player].x)).div(16)));
-    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[player].y)).div(16)));
-    var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players[player].z));
+  for (var player of ShyFog.Server.players.keys()) {
+    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(player).x)).div(16)));
+    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(player).y)).div(16)));
+    var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players.get(player).z));
     for (var x = playerChunkX - distance; x <= playerChunkX + distance; x++) {
       for (var y = playerChunkY - distance; y <= playerChunkY + distance; y++) {
         for (var z = playerChunkZ - distance; z <= playerChunkZ + distance; z++) {
@@ -99,8 +99,8 @@ ShyFog.Server.saveWorld = () => {
     fs.mkdirSync(ShyFog.Server.config.world + "/region");
   }
   fs.writeFileSync(ShyFog.Server.config.world + "/level.json", JSON.stringify(level));
-  for (var player in ShyFog.Server.players) {
-    fs.writeFileSync(ShyFog.Server.config.world + `/players/${player}.json`, JSON.stringify(ShyFog.Server.players[player]));
+  for (var player of ShyFog.Server.players.keys()) {
+    fs.writeFileSync(ShyFog.Server.config.world + `/players/${player}.json`, JSON.stringify(ShyFog.Server.players.get(player)));
   }
   var regions = {};
   for (var chunk in ShyFog.Server.chunks) {
@@ -146,7 +146,7 @@ ShyFog.Server.sendWorldData = ws => {
 };
 
 ShyFog.Server.sendPlayerData = (ws, username) => {
-  ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, username, Object.assign({}, ShyFog.Server.players[username], {
+  ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, username, Object.assign({}, ShyFog.Server.players.get(username), {
     "hitboxes": [{
       "x": 0.125,
       "y": 0.9125,

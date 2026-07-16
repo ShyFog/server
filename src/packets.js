@@ -79,9 +79,9 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       }
       if (ShyFog.Server.playerIds[ws.accountId] && ShyFog.Server.playerIds[ws.accountId] != ws.username) {
         ShyFog.Server.log("INFO", `Migrating player data for username change: ${ShyFog.Server.playerIds[ws.accountId]} --> ${ws.username}`);
-        if (ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]]) {
-          ShyFog.Server.players[ws.username] = ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
-          delete ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
+        if (ShyFog.Server.players.has(ShyFog.Server.playerIds[ws.accountId])) {
+          ShyFog.Server.players.set(ws.username, ShyFog.Server.players.get(ShyFog.Server.playerIds[ws.accountId]));
+          ShyFog.Server.players.delete(ShyFog.Server.playerIds[ws.accountId]);
         }
         if (fs.existsSync(ShyFog.Server.config.world + `/players/${ShyFog.Server.playerIds[ws.accountId]}.json`)) {
           fs.renameSync(ShyFog.Server.config.world + `/players/${ShyFog.Server.playerIds[ws.accountId]}.json`, ShyFog.Server.config.world + `/players/${ws.username}.json`);
@@ -105,10 +105,10 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       "version": ShyFog.Server.version
     });
     ShyFog.Server.sendWorldData(ws);
-    if (ShyFog.Server.players[ws.username] || fs.existsSync(ShyFog.Server.config.world + `/players/${ws.username}.json`)) {
-      ShyFog.Server.players[ws.username] = (ShyFog.Server.players[ws.username] || JSON.parse(fs.readFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`).toString("utf-8")));
+    if (ShyFog.Server.players.has(ws.username) || fs.existsSync(ShyFog.Server.config.world + `/players/${ws.username}.json`)) {
+      ShyFog.Server.players.set(ws.username, (ShyFog.Server.players.get(ws.username) || JSON.parse(fs.readFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`).toString("utf-8"))));
     } else {
-      ShyFog.Server.players[ws.username] = {
+      ShyFog.Server.players.set(ws.username, {
         "dimension": "shyfog:overworld",
         "x": ShyFog.Server.spawn.x,
         "y": ShyFog.Server.spawn.y,
@@ -119,23 +119,23 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
         "slots": {},
         "health": ShyFog.Server.config.maxHealth,
         "food": ShyFog.Server.config.maxFood
-      };
-      fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players[ws.username]));
+      });
+      fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players.get(ws.username)));
     }
     ShyFog.Server.broadcastPacket(client => {
       ShyFog.Server.sendPlayerData(ws, client.username);
       ShyFog.Server.sendPlayerData(client, ws.username);
     });
     ShyFog.Server.log("INFO", `ID of player ${ws.username} is ${ws.accountId}`);
-    ShyFog.Server.log("INFO", `${ws.username}[/${req.ip}] logged in at (${ShyFog.Server.players[ws.username].x}, ${ShyFog.Server.players[ws.username].y}, ${ShyFog.Server.players[ws.username].z})`);
+    ShyFog.Server.log("INFO", `${ws.username}[/${req.ip}] logged in at (${ShyFog.Server.players.get(ws.username).x}, ${ShyFog.Server.players.get(ws.username).y}, ${ShyFog.Server.players.get(ws.username).z})`);
     ShyFog.Server.log("INFO", `${ws.username} joined the game`);
     ShyFog.Server.broadcastPacket(client => ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.CHAT_MESSAGE, {
       "content": `${ws.username} joined the game`,
       "color": "#ffff55"
     }));
-    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].x)).div(16)));
-    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].y)).div(16)));
-    var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players[ws.username].z));
+    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).x)).div(16)));
+    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).y)).div(16)));
+    var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players.get(ws.username).z));
     var chunksToSend = [];
     ShyFog.Server.updateRegions();
     for (var x = playerChunkX - ShyFog.Server.config.generationDistance; x <= playerChunkX + ShyFog.Server.config.generationDistance; x++) {
@@ -186,19 +186,19 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[3] is not none/left/right`);
     }
     var [x, y, z, direction] = data;
-    if (ws.currentGUI && (x != ShyFog.Server.players[ws.username].x || z != ShyFog.Server.players[ws.username].z || (new Big(y)).gt(ShyFog.Server.players[ws.username].y))) {
+    if (ws.currentGUI && (x != ShyFog.Server.players.get(ws.username).x || z != ShyFog.Server.players.get(ws.username).z || (new Big(y)).gt(ShyFog.Server.players.get(ws.username).y))) {
       return ShyFog.Server.sendPlayerData(ws, ws.username);
     }
-    var oldPlayerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].x)).div(16)));
-    var oldPlayerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].y)).div(16)));
-    var oldPlayerChunkZ = ShyFog.Server.bigToNumber((new Big(ShyFog.Server.players[ws.username].z)));
-    ShyFog.Server.players[ws.username].x = x;
-    ShyFog.Server.players[ws.username].y = y;
-    ShyFog.Server.players[ws.username].z = z;
-    ShyFog.Server.players[ws.username].direction = direction;
-    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].x)).div(16)));
-    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].y)).div(16)));
-    var playerChunkZ = ShyFog.Server.bigToNumber((new Big(ShyFog.Server.players[ws.username].z)));
+    var oldPlayerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).x)).div(16)));
+    var oldPlayerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).y)).div(16)));
+    var oldPlayerChunkZ = ShyFog.Server.bigToNumber((new Big(ShyFog.Server.players.get(ws.username).z)));
+    ShyFog.Server.players.get(ws.username).x = x;
+    ShyFog.Server.players.get(ws.username).y = y;
+    ShyFog.Server.players.get(ws.username).z = z;
+    ShyFog.Server.players.get(ws.username).direction = direction;
+    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).x)).div(16)));
+    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(ws.username).y)).div(16)));
+    var playerChunkZ = ShyFog.Server.bigToNumber((new Big(ShyFog.Server.players.get(ws.username).z)));
     if (oldPlayerChunkX != playerChunkX || oldPlayerChunkY != playerChunkY || oldPlayerChunkZ != playerChunkZ) {
       if (ShyFog.Server.getRegionByChunk(`${oldPlayerChunkX},${oldPlayerChunkY},${oldPlayerChunkZ}`).join(",") != ShyFog.Server.getRegionByChunk(`${playerChunkX},${playerChunkY},${playerChunkZ}`).join(",")) {
         ShyFog.Server.updateRegions();
@@ -272,7 +272,7 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       ShyFog.Server.sendPlayerData(ws, ws.username);
       return;
     }
-    if (ShyFog.Server.players[ws.username].gamemode == "adventure" || ShyFog.Server.players[ws.username].gamemode == "spectator") {
+    if (ShyFog.Server.players.get(ws.username).gamemode == "adventure" || ShyFog.Server.players.get(ws.username).gamemode == "spectator") {
       ShyFog.Server.sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       ShyFog.Server.sendWorldData(ws);
       ShyFog.Server.sendPlayerData(ws, ws.username);
@@ -286,13 +286,13 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       return;
     }
     var blockType = ShyFog.Server.items[ShyFog.Server.chunks[`${chunkX},${chunkY},${z}`][blockId].block]({});
-    if (blockType.hardness == -1 && ShyFog.Server.players[ws.username].gamemode != "creative") {
+    if (blockType.hardness == -1 && ShyFog.Server.players.get(ws.username).gamemode != "creative") {
       ShyFog.Server.sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       ShyFog.Server.sendWorldData(ws);
       ShyFog.Server.sendPlayerData(ws, ws.username);
       return;
     }
-    var currentItem = ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`];
+    var currentItem = ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`];
     if (currentItem) {
       currentItem = ShyFog.Server.items[currentItem.item]({});
     }
@@ -307,7 +307,7 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
         ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
       }
     });
-    if (ShyFog.Server.players[ws.username].gamemode == "survival" && (blockType.minMiningLevel < 1 || (currentItem && currentItem.tags.includes(blockType.correctTool) && currentItem.miningLevel >= blockType.minMiningLevel))) {
+    if (ShyFog.Server.players.get(ws.username).gamemode == "survival" && (blockType.minMiningLevel < 1 || (currentItem && currentItem.tags.includes(blockType.correctTool) && currentItem.miningLevel >= blockType.minMiningLevel))) {
       blockType.drop({ ws });
     }
     return;
@@ -364,26 +364,26 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       ShyFog.Server.sendWorldData(ws);
       return;
     }
-    if (!ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`]) {
+    if (!ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`]) {
       ShyFog.Server.sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       ShyFog.Server.sendWorldData(ws);
       ShyFog.Server.sendPlayerData(ws, ws.username);
       return;
     }
-    if (!ShyFog.Server.items[ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`].item]({}).placeable) {
+    if (!ShyFog.Server.items[ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`].item]({}).placeable) {
       ShyFog.Server.sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       ShyFog.Server.sendWorldData(ws);
       ShyFog.Server.sendPlayerData(ws, ws.username);
       return;
     }
-    if (ShyFog.Server.players[ws.username].gamemode == "adventure" || ShyFog.Server.players[ws.username].gamemode == "spectator") {
+    if (ShyFog.Server.players.get(ws.username).gamemode == "adventure" || ShyFog.Server.players.get(ws.username).gamemode == "spectator") {
       ShyFog.Server.sendChunks(ws, [`${chunkX},${chunkY},${z}`]);
       ShyFog.Server.sendWorldData(ws);
       ShyFog.Server.sendPlayerData(ws, ws.username);
       return;
     }
     var newBlock = {
-      "block": ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`].item,
+      "block": ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`].item,
       x, y
     };
     ShyFog.Server.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
@@ -391,15 +391,15 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       if (client === ws) {
         return;
       }
-      var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].x)).div(16)));
-      var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].y)).div(16)));
+      var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).x)).div(16)));
+      var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).y)).div(16)));
       if (playerChunkX >= chunkX - ShyFog.Server.config.viewDistance && playerChunkY >= chunkY - ShyFog.Server.config.viewDistance && playerChunkX <= chunkX + ShyFog.Server.config.viewDistance && playerChunkY <= chunkY + ShyFog.Server.config.viewDistance) {
         ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
       }
     });
-    if (ShyFog.Server.players[ws.username].gamemode != "creative") {
-      if (--ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`].count < 1) {
-        ShyFog.Server.players[ws.username].slots[`hotbar.${ShyFog.Server.players[ws.username].selectedHotbarSlot}`] = null;
+    if (ShyFog.Server.players.get(ws.username).gamemode != "creative") {
+      if (--ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`].count < 1) {
+        ShyFog.Server.players.get(ws.username).slots[`hotbar.${ShyFog.Server.players.get(ws.username).selectedHotbarSlot}`] = null;
       }
     }
     return;
@@ -414,7 +414,7 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
     if (data[0] < 0 || data[0] > 8) {
       return ws.close(1002, `Protocol error in Packet[${op}]:\ndata[0] is not in range 0-8`);
     }
-    ShyFog.Server.players[ws.username].selectedHotbarSlot = data[0];
+    ShyFog.Server.players.get(ws.username).selectedHotbarSlot = data[0];
     ShyFog.Server.getPlayers().forEach(client => {
       if (client === ws) {
         return;
@@ -444,24 +444,24 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       return ShyFog.Server.sendPlayerData(ws, ws.username);
     }
     var slotsUpdated = false;
-    for (var slot in ShyFog.Server.players[ws.username].slots) {
+    for (var slot in ShyFog.Server.players.get(ws.username).slots) {
       if (slot.startsWith("craft.")) {
-        if (ShyFog.Server.players[ws.username].slots[slot]) {
+        if (ShyFog.Server.players.get(ws.username).slots[slot]) {
           if (slot != "craft.result") {
-            ShyFog.Server.giveItem(ShyFog.Server.players[ws.username], ShyFog.Server.players[ws.username].slots[slot].item, ShyFog.Server.players[ws.username].slots[slot].count);
+            ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ShyFog.Server.players.get(ws.username).slots[slot].item, ShyFog.Server.players.get(ws.username).slots[slot].count);
           }
-          ShyFog.Server.players[ws.username].slots[slot] = null;
+          ShyFog.Server.players.get(ws.username).slots[slot] = null;
           slotsUpdated = true;
         }
       }
     }
     if (ws.currentGUI.cursorItem) {
-      ShyFog.Server.giveItem(ShyFog.Server.players[ws.username], ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
+      ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ws.currentGUI.cursorItem.item, ws.currentGUI.cursorItem.count);
       slotsUpdated = true;
     }
     if (slotsUpdated) {
       ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, ws.username, {
-        "slots": ShyFog.Server.players[ws.username].slots
+        "slots": ShyFog.Server.players.get(ws.username).slots
       });
     }
     ws.currentGUI = null;
@@ -489,50 +489,50 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
     if (data[1] != "player_slot") {
       return;
     }
-    var oldItem = Object.assign({}, ShyFog.Server.players[ws.username].slots[data[2]]);
+    var oldItem = Object.assign({}, ShyFog.Server.players.get(ws.username).slots[data[2]]);
     if (data[0] == 0) {
       // Left click
-      if (ws.currentGUI.cursorItem && ShyFog.Server.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == ShyFog.Server.players[ws.username].slots[data[2]].item) {
+      if (ws.currentGUI.cursorItem && ShyFog.Server.players.get(ws.username).slots[data[2]] && ws.currentGUI.cursorItem.item == ShyFog.Server.players.get(ws.username).slots[data[2]].item) {
         // Both cursor item and slot item are the same, transfer as much as possible into the slot
-        var transferringAmount = Math.min(ws.currentGUI.cursorItem.count, ShyFog.Server.items[ws.currentGUI.cursorItem.item]({}).stackSize - ShyFog.Server.players[ws.username].slots[data[2]].count);
+        var transferringAmount = Math.min(ws.currentGUI.cursorItem.count, ShyFog.Server.items[ws.currentGUI.cursorItem.item]({}).stackSize - ShyFog.Server.players.get(ws.username).slots[data[2]].count);
         ws.currentGUI.cursorItem.count -= transferringAmount;
-        ShyFog.Server.players[ws.username].slots[data[2]].count += transferringAmount;
+        ShyFog.Server.players.get(ws.username).slots[data[2]].count += transferringAmount;
         if (ws.currentGUI.cursorItem.count < 1) {
           ws.currentGUI.cursorItem = null;
         }
       } else {
         // Swap cursor item with the slot item
         var oldCursorItem = ws.currentGUI.cursorItem;
-        ws.currentGUI.cursorItem = ShyFog.Server.players[ws.username].slots[data[2]];
-        ShyFog.Server.players[ws.username].slots[data[2]] = oldCursorItem;
+        ws.currentGUI.cursorItem = ShyFog.Server.players.get(ws.username).slots[data[2]];
+        ShyFog.Server.players.get(ws.username).slots[data[2]] = oldCursorItem;
       }
     }
     if (data[0] == 2) {
       // Right click
-      if (!ws.currentGUI.cursorItem && ShyFog.Server.players[ws.username].slots[data[2]]) {
+      if (!ws.currentGUI.cursorItem && ShyFog.Server.players.get(ws.username).slots[data[2]]) {
         // Take half of the items in the slot
-        var takingAmount = Math.ceil(ShyFog.Server.players[ws.username].slots[data[2]].count / 2);
+        var takingAmount = Math.ceil(ShyFog.Server.players.get(ws.username).slots[data[2]].count / 2);
         ws.currentGUI.cursorItem = {
-          "item": ShyFog.Server.players[ws.username].slots[data[2]].item,
+          "item": ShyFog.Server.players.get(ws.username).slots[data[2]].item,
           "count": takingAmount
         };
-        ShyFog.Server.players[ws.username].slots[data[2]].count -= takingAmount;
-        if (ShyFog.Server.players[ws.username].slots[data[2]].count < 1) {
-          ShyFog.Server.players[ws.username].slots[data[2]] = null;
+        ShyFog.Server.players.get(ws.username).slots[data[2]].count -= takingAmount;
+        if (ShyFog.Server.players.get(ws.username).slots[data[2]].count < 1) {
+          ShyFog.Server.players.get(ws.username).slots[data[2]] = null;
         }
-      } else if (ws.currentGUI.cursorItem && !ShyFog.Server.players[ws.username].slots[data[2]]) {
+      } else if (ws.currentGUI.cursorItem && !ShyFog.Server.players.get(ws.username).slots[data[2]]) {
         // Add just 1 item into the empty slot
-        ShyFog.Server.players[ws.username].slots[data[2]] = {
+        ShyFog.Server.players.get(ws.username).slots[data[2]] = {
           "item": ws.currentGUI.cursorItem.item,
           "count": 1
         };
         if (--ws.currentGUI.cursorItem.count < 1) {
           ws.currentGUI.cursorItem = null;
         }
-      } else if (ws.currentGUI.cursorItem && ShyFog.Server.players[ws.username].slots[data[2]] && ws.currentGUI.cursorItem.item == ShyFog.Server.players[ws.username].slots[data[2]].item) {
+      } else if (ws.currentGUI.cursorItem && ShyFog.Server.players.get(ws.username).slots[data[2]] && ws.currentGUI.cursorItem.item == ShyFog.Server.players.get(ws.username).slots[data[2]].item) {
         // Add just 1 item into the slot
-        if (ShyFog.Server.players[ws.username].slots[data[2]].count < ShyFog.Server.items[ws.currentGUI.cursorItem.item]({}).stackSize) {
-          ShyFog.Server.players[ws.username].slots[data[2]].count++;
+        if (ShyFog.Server.players.get(ws.username).slots[data[2]].count < ShyFog.Server.items[ws.currentGUI.cursorItem.item]({}).stackSize) {
+          ShyFog.Server.players.get(ws.username).slots[data[2]].count++;
           if (--ws.currentGUI.cursorItem.count < 1) {
             ws.currentGUI.cursorItem = null;
           }
@@ -540,19 +540,19 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       } else {
         // Swap cursor item with the slot item
         var oldCursorItem = ws.currentGUI.cursorItem;
-        ws.currentGUI.cursorItem = ShyFog.Server.players[ws.username].slots[data[2]];
-        ShyFog.Server.players[ws.username].slots[data[2]] = oldCursorItem;
+        ws.currentGUI.cursorItem = ShyFog.Server.players.get(ws.username).slots[data[2]];
+        ShyFog.Server.players.get(ws.username).slots[data[2]] = oldCursorItem;
       }
     }
     ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, ws.username, {
-      "slots": ShyFog.Server.players[ws.username].slots,
+      "slots": ShyFog.Server.players.get(ws.username).slots,
       "currentGUI": ws.currentGUI
     });
     var slot = ShyFog.Server.guis[ws.currentGUI.id].content.find(element => element.type == data[1] && element.slot == data[2]);
     if (slot && slot.update) {
       slot.update({
         ws, oldItem,
-        "newItem": ShyFog.Server.players[ws.username].slots[data[2]]
+        "newItem": ShyFog.Server.players.get(ws.username).slots[data[2]]
       });
     }
     return;
