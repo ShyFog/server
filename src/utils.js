@@ -5,24 +5,102 @@ if (typeof require !== "undefined") {
   fs = ZenFS.fs;
 }
 
+ShyFog.Server.getRegionByChunk = chunk => {
+  var [ x, y, z ] = chunk.split(",").map(part => parseInt(part));
+  return [ Math.floor(x / 32), Math.floor(y / 32), Math.floor(z / 32) ];
+};
+
+ShyFog.Server.updateRegions = () => {
+  var regionsToLoad = new Set;
+  var chunksToUnload = new Set(Object.keys(ShyFog.Server.chunks));
+  var distance = Math.max(ShyFog.Server.config.viewDistance, ShyFog.Server.config.generationDistance);
+  for (var player in ShyFog.Server.players) {
+    var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[player].x)).div(16)));
+    var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[player].y)).div(16)));
+    var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players[player].z));
+    for (var x = playerChunkX - distance; x <= playerChunkX + distance; x++) {
+      for (var y = playerChunkY - distance; y <= playerChunkY + distance; y++) {
+        for (var z = playerChunkZ - distance; z <= playerChunkZ + distance; z++) {
+          var region = ShyFog.Server.getRegionByChunk(`${x},${y},${z}`).join(",");
+          if (!regionsToLoad.has(region)) {
+            regionsToLoad.add(region);
+          }
+        }
+      }
+    }
+  }
+  for (var chunk of chunksToUnload) {
+    if (regionsToLoad.has(ShyFog.Server.getRegionByChunk(chunk).join(","))) {
+      chunksToUnload.delete(chunk);
+    }
+  }
+  for (var region of regionsToLoad) {
+    if (fs.existsSync(ShyFog.Server.config.world + `/region/${region}.sfr`)) {
+      var regionData = null;
+      if (ShyFog.Server.config.compressWorld) {
+        regionData = JSON.parse(pako.inflate(fs.readFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`), {
+          "to": "string"
+        }));
+      } else {
+        regionData = JSON.parse(fs.readFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`).toString("utf-8"));
+      }
+      for (var chunk in regionData.chunks) {
+        if (!ShyFog.Server.chunks[chunk]) {
+          ShyFog.Server.chunks[chunk] = regionData.chunks[chunk];
+          ShyFog.Server.biomes[chunk] = regionData.biomes[chunk];
+        }
+      }
+    }
+  }
+  for (var chunk of chunksToUnload) {
+    delete ShyFog.Server.chunks[chunk];
+    delete ShyFog.Server.biomes[chunk];
+  }
+};
+
 ShyFog.Server.saveWorld = () => {
   ShyFog.Server.log("INFO", "Saving world");
-  var world = {
-    "chunks": ShyFog.Server.chunks,
-    "biomes": ShyFog.Server.biomes,
-    "players": ShyFog.Server.players,
+  var level = {
     "playerIds": ShyFog.Server.playerIds,
     "bannedNames": ShyFog.Server.bannedNames,
     "bannedIds": ShyFog.Server.bannedIds,
     "bannedIps": ShyFog.Server.bannedIps,
     "defaultGamemode": ShyFog.Server.defaultGamemode,
     "worldVersion": ShyFog.Server.worldVersion,
-    "seed": ShyFog.Server.seed
+    "seed": ShyFog.Server.seed,
+    "spawn": ShyFog.Server.spawn
   };
-  if (ShyFog.Server.config.compressWorld) {
-    fs.writeFileSync(ShyFog.Server.config.world, pako.deflate(JSON.stringify(world)));
-  } else {
-    fs.writeFileSync(ShyFog.Server.config.world, JSON.stringify(world));
+  if (!fs.existsSync(ShyFog.Server.config.world)) {
+    fs.mkdirSync(ShyFog.Server.config.world);
+  }
+  if (!fs.existsSync(ShyFog.Server.config.world + "/players")) {
+    fs.mkdirSync(ShyFog.Server.config.world + "/players");
+  }
+  if (!fs.existsSync(ShyFog.Server.config.world + "/region")) {
+    fs.mkdirSync(ShyFog.Server.config.world + "/region");
+  }
+  fs.writeFileSync(ShyFog.Server.config.world + "/level.json", JSON.stringify(level));
+  for (var player in ShyFog.Server.players) {
+    fs.writeFileSync(ShyFog.Server.config.world + `/players/${player}.json`, JSON.stringify(ShyFog.Server.players[player]));
+  }
+  var regions = {};
+  for (var chunk in ShyFog.Server.chunks) {
+    var region = ShyFog.Server.getRegionByChunk(chunk).join(",");
+    if (!regions[region]) {
+      regions[region] = {
+        "chunks": {},
+        "biomes": {}
+      };
+    }
+    regions[region].chunks[chunk] = ShyFog.Server.chunks[chunk].filter(block => block),
+    regions[region].biomes[chunk] = ShyFog.Server.biomes[chunk];
+  }
+  for (var region in regions) {
+    if (ShyFog.Server.config.compressWorld) {
+      fs.writeFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`, pako.deflate(JSON.stringify(regions[region])));
+    } else {
+      fs.writeFileSync(ShyFog.Server.config.world + `/region/${region}.sfr`, JSON.stringify(regions[region]));
+    }
   }
 };
 

@@ -107,7 +107,7 @@ if (!fs.existsSync("config.json")) {
     "icon": "",
     "defaultGamemode": "survival",
     "seed": "",
-    "world": "world.sfw",
+    "world": "world",
     "compressWorld": true,
     "autosaveTime": 60,
     "onlineMode": true,
@@ -194,17 +194,10 @@ ShyFog.Server.consoleInput = readline ? readline.createInterface({
 if (fs.existsSync(ShyFog.Server.config.world)) {
   ShyFog.Server.log("INFO", `Loading "${ShyFog.Server.config.world}"`);
   try {
-    var world = null;
-    if (ShyFog.Server.config.compressWorld) {
-      world = JSON.parse(pako.inflate(fs.readFileSync(ShyFog.Server.config.world), {
-        "to": "string"
-      }));
-    } else {
-      world = JSON.parse(fs.readFileSync(ShyFog.Server.config.world));
-    }
-    ShyFog.Server.chunks = world.chunks;
-    ShyFog.Server.biomes = world.biomes;
-    ShyFog.Server.players = world.players;
+    var world = JSON.parse(fs.readFileSync(ShyFog.Server.config.world + "/level.json"));
+    ShyFog.Server.chunks = {};
+    ShyFog.Server.biomes = {};
+    ShyFog.Server.players = {};
     ShyFog.Server.playerIds = world.playerIds;
     ShyFog.Server.bannedNames = world.bannedNames;
     ShyFog.Server.bannedIds = world.bannedIds;
@@ -212,15 +205,13 @@ if (fs.existsSync(ShyFog.Server.config.world)) {
     ShyFog.Server.defaultGamemode = world.defaultGamemode;
     ShyFog.Server.worldVersion = world.worldVersion;
     ShyFog.Server.seed = world.seed;
+    ShyFog.Server.spawn = world.spawn;
   } catch(_) {
     ShyFog.Server.log("FATAL", "World file is corrupted");
     process.exit(1);
   }
-  for (var chunk in ShyFog.Server.chunks) {
-    ShyFog.Server.chunks[chunk] = ShyFog.Server.chunks[chunk].filter(block => block);
-  }
 } else {
-  ShyFog.Server.hooks.onListen.push(() => {
+  ShyFog.Server.hooks.onListen.unshift(() => {
     ShyFog.Server.log("INFO", `Preparing level "${ShyFog.Server.config.world}"`);
     ShyFog.Server.seed = ShyFog.Server.config.seed;
     if (ShyFog.Server.seed === "") {
@@ -318,6 +309,8 @@ if (ShyFog.Server.app) {
             "content": `${ws.username} left the game`,
             "color": "#ffff55"
           }));
+          fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players[ws.username]));
+          delete ShyFog.Server.players[ws.username];
           ShyFog.Server.broadcastPacket(client => {
             ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.PLAYER_DISCONNECTED, ws.username);
           });

@@ -1,6 +1,6 @@
 node_modules/
 package-lock.json
 shyfog-server.js
+world/
 mods/
 config.json
-world.sfw

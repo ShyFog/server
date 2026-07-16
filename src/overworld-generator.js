@@ -27,9 +27,6 @@ const biomes = {
 const biomeScale = (1 / 256);
 
 ShyFog.Server.generators.overworld = (chunkX, chunkY, chunkZ) => {
-  if (ShyFog.Server.chunks[`${chunkX},${chunkY},${chunkZ}`]) {
-    return;
-  }
   ShyFog.Server.chunks[`${chunkX},${chunkY},${chunkZ}`] = [];
   ShyFog.Server.biomes[`${chunkX},${chunkY},${chunkZ}`] = [];
   if (chunkZ != 0) {

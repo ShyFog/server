@@ -1,3 +1,10 @@
+var fs = null;
+if (typeof require !== "undefined") {
+  fs = require("fs");
+} else if (typeof ZenFS !== "undefined") {
+  fs = ZenFS.fs;
+}
+
 ShyFog.Server.decodePacket = data => {
   var packet = null;
   try {
@@ -72,8 +79,13 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       }
       if (ShyFog.Server.playerIds[ws.accountId] && ShyFog.Server.playerIds[ws.accountId] != ws.username) {
         ShyFog.Server.log("INFO", `Migrating player data for username change: ${ShyFog.Server.playerIds[ws.accountId]} --> ${ws.username}`);
-        ShyFog.Server.players[ws.username] = ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
-        delete ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
+        if (ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]]) {
+          ShyFog.Server.players[ws.username] = ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
+          delete ShyFog.Server.players[ShyFog.Server.playerIds[ws.accountId]];
+        }
+        if (fs.existsSync(ShyFog.Server.config.world + `/players/${ShyFog.Server.playerIds[ws.accountId]}.json`)) {
+          fs.renameSync(ShyFog.Server.config.world + `/players/${ShyFog.Server.playerIds[ws.accountId]}.json`, ShyFog.Server.config.world + `/players/${ws.username}.json`);
+        }
       }
       ShyFog.Server.playerIds[ws.accountId] = ws.username;
     } else {
@@ -93,7 +105,9 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       "version": ShyFog.Server.version
     });
     ShyFog.Server.sendWorldData(ws);
-    if (!ShyFog.Server.players[ws.username]) {
+    if (ShyFog.Server.players[ws.username] || fs.existsSync(ShyFog.Server.config.world + `/players/${ws.username}.json`)) {
+      ShyFog.Server.players[ws.username] = (ShyFog.Server.players[ws.username] || JSON.parse(fs.readFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`).toString("utf-8")));
+    } else {
       ShyFog.Server.players[ws.username] = {
         "dimension": "shyfog:overworld",
         "x": ShyFog.Server.spawn.x,
@@ -106,6 +120,7 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
         "health": ShyFog.Server.config.maxHealth,
         "food": ShyFog.Server.config.maxFood
       };
+      fs.writeFileSync(ShyFog.Server.config.world + `/players/${ws.username}.json`, JSON.stringify(ShyFog.Server.players[ws.username]));
     }
     ShyFog.Server.broadcastPacket(client => {
       ShyFog.Server.sendPlayerData(ws, client.username);
@@ -122,10 +137,13 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
     var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].y)).div(16)));
     var playerChunkZ = ShyFog.Server.bigToNumber(new Big(ShyFog.Server.players[ws.username].z));
     var chunksToSend = [];
+    ShyFog.Server.updateRegions();
     for (var x = playerChunkX - ShyFog.Server.config.generationDistance; x <= playerChunkX + ShyFog.Server.config.generationDistance; x++) {
       for (var y = playerChunkY - ShyFog.Server.config.generationDistance; y <= playerChunkY + ShyFog.Server.config.generationDistance; y++) {
         for (var z = playerChunkZ - ShyFog.Server.config.generationDistance; z <= playerChunkZ + ShyFog.Server.config.generationDistance; z++) {
-          ShyFog.Server.generators.overworld(x, y, z);
+          if (!ShyFog.Server.chunks[`${x},${y},${z}`]) {
+            ShyFog.Server.generators.overworld(x, y, z);
+          }
         }
       }
     }
@@ -182,10 +200,15 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
     var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[ws.username].y)).div(16)));
     var playerChunkZ = ShyFog.Server.bigToNumber((new Big(ShyFog.Server.players[ws.username].z)));
     if (oldPlayerChunkX != playerChunkX || oldPlayerChunkY != playerChunkY || oldPlayerChunkZ != playerChunkZ) {
+      if (ShyFog.Server.getRegionByChunk(`${oldPlayerChunkX},${oldPlayerChunkY},${oldPlayerChunkZ}`).join(",") != ShyFog.Server.getRegionByChunk(`${playerChunkX},${playerChunkY},${playerChunkZ}`).join(",")) {
+        ShyFog.Server.updateRegions();
+      }
       for (var x = playerChunkX - ShyFog.Server.config.generationDistance; x <= playerChunkX + ShyFog.Server.config.generationDistance; x++) {
         for (var y = playerChunkY - ShyFog.Server.config.generationDistance; y <= playerChunkY + ShyFog.Server.config.generationDistance; y++) {
           for (var z = playerChunkZ - ShyFog.Server.config.generationDistance; z <= playerChunkZ + ShyFog.Server.config.generationDistance; z++) {
-            ShyFog.Server.generators.overworld(x, y, z);
+            if (!ShyFog.Server.chunks[`${x},${y},${z}`]) {
+              ShyFog.Server.generators.overworld(x, y, z);
+            }
           }
         }
       }
