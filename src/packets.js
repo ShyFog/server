@@ -301,8 +301,8 @@ ShyFog.Server.handlePacket = async (ws, req, message) => {
       if (client === ws) {
         return;
       }
-      var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].x)).div(16)));
-      var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].y)).div(16)));
+      var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).x)).div(16)));
+      var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).y)).div(16)));
       if (playerChunkX >= chunkX - ShyFog.Server.config.viewDistance && playerChunkY >= chunkY - ShyFog.Server.config.viewDistance && playerChunkX <= chunkX + ShyFog.Server.config.viewDistance && playerChunkY <= chunkY + ShyFog.Server.config.viewDistance) {
         ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
       }

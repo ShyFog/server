@@ -85,13 +85,13 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (args.length > 2) {
         return ShyFog.Server.log("INFO", "Incorrect argument for command");
       }
-      if (!ShyFog.Server.players[player]) {
+      if (!ShyFog.Server.players.has(player)) {
         return ShyFog.Server.log("INFO", "No player was found");
       }
       if (!["survival", "adventure", "creative", "spectator"].includes(gamemode)) {
         return ShyFog.Server.log("INFO", `Unknown game mode: ${gamemode}`);
       }
-      ShyFog.Server.players[player].gamemode = gamemode;
+      ShyFog.Server.players.get(player).gamemode = gamemode;
       log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (client) {
@@ -118,7 +118,7 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (args.length > 3) {
         return ShyFog.Server.log("INFO", "Incorrect argument for command");
       }
-      if (!ShyFog.Server.players[player]) {
+      if (!ShyFog.Server.players.has(player)) {
         return ShyFog.Server.log("INFO", "No player was found");
       }
       if (!ShyFog.Server.items[item]) {
@@ -130,12 +130,12 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (amount < 1) {
         return ShyFog.Server.log("INFO", `Integer must not be less than 1: found ${amount}`);
       }
-      ShyFog.Server.giveItem(ShyFog.Server.players[player], item, amount);
+      ShyFog.Server.giveItem(ShyFog.Server.players.get(player), item, amount);
       ShyFog.Server.log("INFO", `Gave ${amount} [${item}] to ${player}`);
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (client) {
         ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.PLAYER_METADATA, player, {
-          "slots": ShyFog.Server.players[player].slots
+          "slots": ShyFog.Server.players.get(player).slots
         });
       }
       return;
@@ -148,12 +148,12 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (!reason) {
         reason = "Kicked by an operator";
       }
-      if (!ShyFog.Server.players[player]) {
+      if (!ShyFog.Server.players.has(player)) {
         return ShyFog.Server.log("INFO", "No player was found");
       }
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (!client) {
-        return ShyFog.Server.log("INFO", "Player is not online");
+        return ShyFog.Server.log("INFO", "No player was found");
       }
       ShyFog.Server.log("INFO", `Kicked ${player}: ${reason}`);
       client.close(1000, reason);
@@ -241,8 +241,8 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       if (blockId > -1) {
         ShyFog.Server.chunks[`${chunkX},${chunkY},${z}`][blockId] = null;
         ShyFog.Server.broadcastPacket(client => {
-          var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].x)).div(16)));
-          var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].y)).div(16)));
+          var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).x)).div(16)));
+          var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).y)).div(16)));
           if (playerChunkX >= chunkX - ShyFog.Server.config.viewDistance && playerChunkY >= chunkY - ShyFog.Server.config.viewDistance && playerChunkX <= chunkX + ShyFog.Server.config.viewDistance && playerChunkY <= chunkY + ShyFog.Server.config.viewDistance) {
             ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.BLOCK_BREAK, chunkX, chunkY, z, blockId);
           }
@@ -254,8 +254,8 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
       var newBlock = { block, x, y };
       ShyFog.Server.chunks[`${chunkX},${chunkY},${z}`].push(newBlock);
       ShyFog.Server.broadcastPacket(client => {
-        var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].x)).div(16)));
-        var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players[client.username].y)).div(16)));
+        var playerChunkX = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).x)).div(16)));
+        var playerChunkY = ShyFog.Server.bigToNumber(ShyFog.Server.bigFloor((new Big(ShyFog.Server.players.get(client.username).y)).div(16)));
         if (playerChunkX >= chunkX - ShyFog.Server.config.viewDistance && playerChunkY >= chunkY - ShyFog.Server.config.viewDistance && playerChunkX <= chunkX + ShyFog.Server.config.viewDistance && playerChunkY <= chunkY + ShyFog.Server.config.viewDistance) {
           ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.BLOCK_PLACE, chunkX, chunkY, z, newBlock);
         }
@@ -305,12 +305,12 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
         }
         player = executorName;
       }
-      if (!ShyFog.Server.players[player]) {
+      if (!ShyFog.Server.players.has(player)) {
         return ShyFog.Server.log("INFO", "No player was found");
       }
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (!client) {
-        return ShyFog.Server.log("INFO", "Player is not online");
+        return ShyFog.Server.log("INFO", "No player was found");
       }
       ShyFog.Server.log("INFO", `Transferring ${player} to ${server}`);
       ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.SERVER_TRANSFER, server, forceSSL);

@@ -295,7 +295,7 @@ if (ShyFog.Server.app) {
             if (slot.startsWith("craft.")) {
               if (ShyFog.Server.players.get(ws.username).slots[slot]) {
                 if (slot != "craft.result") {
-                  ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ShyFog.Server.players.get(ws.username).slots[slot].item, ShyFog.Server.players[ws.username].slots[slot].count);
+                  ShyFog.Server.giveItem(ShyFog.Server.players.get(ws.username), ShyFog.Server.players.get(ws.username).slots[slot].item, ShyFog.Server.players.get(ws.username).slots[slot].count);
                 }
                 ShyFog.Server.players.get(ws.username).slots[slot] = null;
               }

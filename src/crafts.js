@@ -12,13 +12,13 @@ ShyFog.Server.getCurrentRecipe = (ws, width, height) => {
         return ingredient;
       });
       for (var index = 0; index < width * height; index++) {
-        if (!ShyFog.Server.players[ws.username].slots[`craft.${index}`]) {
+        if (!ShyFog.Server.players.get(ws.username).slots[`craft.${index}`]) {
           continue;
         }
         if (!ingredients.length) {
           continue recipesearch;
         }
-        var slotItem = ShyFog.Server.players[ws.username].slots[`craft.${index}`];
+        var slotItem = ShyFog.Server.players.get(ws.username).slots[`craft.${index}`];
         var ingredientIndex = ingredients.findIndex(ingredient => {
           if (ingredient.item.startsWith("#")) {
             return ShyFog.Server.items[slotItem.item]({}).tags.includes(ingredient.item);
@@ -43,7 +43,7 @@ ShyFog.Server.getCurrentRecipe = (ws, width, height) => {
         for (var offsetY = 0; offsetY <= height - recipe.pattern.length; offsetY++) {
           for (var x = 0; x < width; x++) {
             for (var y = 0; y < height; y++) {
-              var slotItem = ShyFog.Server.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
+              var slotItem = ShyFog.Server.players.get(ws.username).slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
               var recipeKey = recipe.pattern[y] ? recipe.pattern[y][x] : null;
               if (recipeKey && recipeKey != " ") {
                 if (!slotItem) {
@@ -87,15 +87,15 @@ ShyFog.Server.getCurrentRecipe = (ws, width, height) => {
 ShyFog.Server.updateCraft = (ws, width, height) => {
   var result = ShyFog.Server.getCurrentRecipe(ws, width, height);
   if (result) {
-    ShyFog.Server.players[ws.username].slots["craft.result"] = {
+    ShyFog.Server.players.get(ws.username).slots["craft.result"] = {
       "item": result.recipe.result.id,
       "count": (result.recipe.result.count || 1)
     };
   } else {
-    ShyFog.Server.players[ws.username].slots["craft.result"] = null;
+    ShyFog.Server.players.get(ws.username).slots["craft.result"] = null;
   }
   ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, ws.username, {
-    "slots": ShyFog.Server.players[ws.username].slots
+    "slots": ShyFog.Server.players.get(ws.username).slots
   });
   return result;
 };
@@ -106,15 +106,15 @@ ShyFog.Server.finishCraft = (ws, width, height) => {
     var { recipe, offsetX, offsetY } = result;
     if (recipe.type == "shyfog:crafting_shapeless") {
       for (var index = 0; index < width * height; index++) {
-        if (ShyFog.Server.players[ws.username].slots[`craft.${index}`] && --ShyFog.Server.players[ws.username].slots[`craft.${index}`].count < 1) {
-          ShyFog.Server.players[ws.username].slots[`craft.${index}`] = null;
+        if (ShyFog.Server.players.get(ws.username).slots[`craft.${index}`] && --ShyFog.Server.players.get(ws.username).slots[`craft.${index}`].count < 1) {
+          ShyFog.Server.players.get(ws.username).slots[`craft.${index}`] = null;
         }
       }
     }
     if (recipe.type == "shyfog:crafting_shaped") {
       for (var x = 0; x < width; x++) {
         for (var y = 0; y < height; y++) {
-          var slotItem = ShyFog.Server.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
+          var slotItem = ShyFog.Server.players.get(ws.username).slots[`craft.${((y + offsetY) * height) + x + offsetX}`];
           var recipeKey = recipe.pattern[y] ? recipe.pattern[y][x] : null;
           if (!recipeKey || recipeKey == " ") {
             continue;
@@ -128,13 +128,13 @@ ShyFog.Server.finishCraft = (ws, width, height) => {
           }
           slotItem.count -= recipeItem.count;
           if (slotItem.count < 1) {
-            ShyFog.Server.players[ws.username].slots[`craft.${((y + offsetY) * height) + x + offsetX}`] = null;
+            ShyFog.Server.players.get(ws.username).slots[`craft.${((y + offsetY) * height) + x + offsetX}`] = null;
           }
         }
       }
     }
     ShyFog.Server.sendPacket(ws, ShyFog.Server.PacketType.PLAYER_METADATA, ws.username, {
-      "slots": ShyFog.Server.players[ws.username].slots
+      "slots": ShyFog.Server.players.get(ws.username).slots
     });
   }
   ShyFog.Server.updateCraft(ws, width, height);
