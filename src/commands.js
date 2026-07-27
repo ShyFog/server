@@ -68,7 +68,7 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
         return ShyFog.Server.log("INFO", `Unknown game mode: ${gamemode}`);
       }
       ShyFog.Server.defaultGamemode = gamemode;
-      log("INFO", `The default game mode is now ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
+      ShyFog.Server.log("INFO", `The default game mode is now ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
       return;
     case "gamemode":
       var gamemode = args[0];
@@ -92,7 +92,7 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
         return ShyFog.Server.log("INFO", `Unknown game mode: ${gamemode}`);
       }
       ShyFog.Server.players.get(player).gamemode = gamemode;
-      log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
+      ShyFog.Server.log("INFO", `Set ${player}'s game mode to ${gamemode[0].toUpperCase()}${gamemode.slice(1)} Mode`);
       var client = ShyFog.Server.clients.find(client => client.username == player);
       if (client) {
         ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.PLAYER_METADATA, player, { gamemode });
