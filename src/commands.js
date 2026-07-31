@@ -187,7 +187,7 @@ ShyFog.Server.executeCommand = (executorId, executorName, cmd) => {
     case "say":
       var content = `[${executorName}] ${args.join(" ")}`;
       ShyFog.Server.log("INFO", content);
-      ShyFog.Server.broadcastPacket(client => ShyFog.Server.sendPacket(client, PacketType.CHAT_MESSAGE, { content }));
+      ShyFog.Server.broadcastPacket(client => ShyFog.Server.sendPacket(client, ShyFog.Server.PacketType.CHAT_MESSAGE, { content }));
       return;
     case "seed":
       return ShyFog.Server.log("INFO", `Seed: [${ShyFog.Server.seed}]`);
