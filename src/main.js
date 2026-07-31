@@ -279,7 +279,7 @@ if (ShyFog.Server.app) {
       "onlinePlayers": ShyFog.Server.getPlayers().length,
       "maxPlayers": ShyFog.Server.config.maxPlayers,
       "motd": ShyFog.Server.config.motd,
-      "icon": ShyFog.Server.config.icon ? `data:image/png;base64,${fs.readFileSync(config.icon).toString("base64")}` : null
+      "icon": ShyFog.Server.config.icon ? `data:image/png;base64,${fs.readFileSync(ShyFog.Server.config.icon).toString("base64")}` : null
     });
   });
 
