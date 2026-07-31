@@ -236,7 +236,7 @@ if (fs.existsSync(ShyFog.Server.config.world)) {
       }
     }
     ShyFog.Server.log("INFO", "Selecting global world spawn...");
-    const transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass_top", "shyfog:tall_grass_bottom", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
+    const transparentBlocks = ["shyfog:short_grass", "shyfog:tall_grass", "shyfog:dandelion", "shyfog:poppy", "shyfog:blue_orchid", "shyfog:allium", "shyfog:azure_bluet", "shyfog:white_tulip", "shyfog:red_tulip", "shyfog:pink_tulip", "shyfog:orange_tulip", "shyfog:oxeye_daisy", "shyfog:cornflower"];
     var safeChunks = [];
     for (var chunk in ShyFog.Server.chunks) {
       var [ chunkX, chunkY, chunkZ ] = chunk.split(",").map(part => parseInt(part));
